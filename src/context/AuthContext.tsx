@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { AuthService } from '../services/AuthService';
 import { SecureStorage } from '../utils/secureStorage';
 import { ErrorHandler } from '../utils/errorHandler';
@@ -44,7 +45,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setStatus(hasProfile ? 'success' : 'error');
       return hasProfile;
-    } catch {
+    } catch (error) {
+      const statusCode = isAxiosError(error) ? error.response?.status : undefined;
+
+      // Only a 404 means that an authenticated user has no teacher profile.
+      // Treating a 401 (expired token) as a missing profile used to send users
+      // to the registration form, where the POST was rejected again.
+      if (statusCode === 401) {
+        await SecureStorage.clearAll();
+        setState({ ...initialState, isLoading: false });
+        setStatus('idle');
+        return false;
+      }
+
       setState((prev) => ({
         ...prev,
         hasTeacherProfile: false,

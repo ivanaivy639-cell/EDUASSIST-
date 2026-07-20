@@ -21,6 +21,7 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
   AUTH: {
     GOOGLE: '/auth/google',
+    LOGOUT: '/auth/logout',
   },
   TEACHER: {
     ME: '/enseignants/me',

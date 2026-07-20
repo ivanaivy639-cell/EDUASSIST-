@@ -16,9 +16,11 @@ export const GOOGLE_ANDROID_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
   '989142614977-90j59tol2ddd0fllsotvn9r28579nh89.apps.googleusercontent.com';
 
-// The browser redirect URL is only valid for the web OAuth client. On Android,
-// Expo uses the app scheme linked to the Android OAuth client.
+// This URL must exactly match an authorized redirect URI of the Google web
+// OAuth client. Give the explicit environment value priority over the browser
+// origin: Expo may be served from a LAN/IP address while Google is configured
+// for the local web callback.
 export const GOOGLE_REDIRECT_URI =
   Platform.OS === 'web'
-    ? getCurrentWebOrigin() || process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI || 'http://localhost:8082'
+    ? process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI || getCurrentWebOrigin() || 'http://localhost:8082'
     : undefined;

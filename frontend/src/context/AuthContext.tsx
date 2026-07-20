@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { AuthService } from '../services/AuthService';
 import { SecureStorage } from '../utils/secureStorage';
 import { ErrorHandler } from '../utils/errorHandler';
@@ -44,7 +45,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setStatus(hasProfile ? 'success' : 'error');
       return hasProfile;
-    } catch {
+    } catch (error) {
+      const statusCode = isAxiosError(error) ? error.response?.status : undefined;
+
+      // A missing profile is a 404. An expired token must return to login,
+      // otherwise the registration request is sent with an invalid token.
+      if (statusCode === 401) {
+        await SecureStorage.clearAll();
+        setState({ ...initialState, isLoading: false });
+        setStatus('idle');
+        return false;
+      }
+
       setState((prev) => ({
         ...prev,
         hasTeacherProfile: false,

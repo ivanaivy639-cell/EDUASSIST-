@@ -75,11 +75,17 @@ export class AuthService {
   }
 
   /**
-   * Déconnecte l'utilisateur et supprime les tokens stockés
+   * Deconnecte l'utilisateur et supprime les tokens stockes
    */
   static async logout(): Promise<void> {
-    await SecureStorage.removeToken();
-    await SecureStorage.removeUser();
+    try {
+      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
+    } catch (error) {
+      console.warn('Erreur lors de la deconnexion sur le serveur:', error);
+    } finally {
+      await SecureStorage.removeToken();
+      await SecureStorage.removeUser();
+    }
   }
 
   /**

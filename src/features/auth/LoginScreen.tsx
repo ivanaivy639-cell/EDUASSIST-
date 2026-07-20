@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Redirect, useRouter, type Href } from 'expo-router';
 
 import { GoogleButton } from '../../components/buttons/GoogleButton';
 import { LoadingOverlay } from '../../components/feedback/LoadingOverlay';
@@ -46,9 +45,28 @@ const getGoogleTokens = (result: GoogleAuthResult): {
   idToken: result.authentication?.idToken || result.params?.id_token || null,
 });
 
+const getGoogleAuthErrorMessage = (error: unknown): string => {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : '';
+
+  if (code === '10' || code === 'DEVELOPER_ERROR') {
+    return (
+      'La connexion Google Android n est pas encore configuree pour cette version de l application. ' +
+      'Verifiez le package et la cle SHA-1 dans Firebase/Google Cloud, puis reconstruisez l application.'
+    );
+  }
+
+  if (code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+    return 'Les services Google Play ne sont pas disponibles ou doivent etre mis a jour sur cet appareil.';
+  }
+
+  return error instanceof Error ? error.message : 'Une erreur est survenue';
+};
+
 export const LoginScreen = React.memo(() => {
-  const router = useRouter();
-  const { login, state, status } = useAuth();
+  const { login, status } = useAuth();
   const { request, response, promptAsync } = useGoogleAuth();
   const isProcessingRef = useRef(false);
   const handledGoogleResponseRef = useRef<string | null>(null);
@@ -58,13 +76,6 @@ export const LoginScreen = React.memo(() => {
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
   const isLoading = status === 'authenticating' || isProcessingGoogle;
-
-  const redirectAfterAuth = useCallback((hasTeacherProfile: boolean) => {
-    const destination = (hasTeacherProfile ? '/home' : '/register-teacher') as Href;
-    requestAnimationFrame(() => {
-      router.replace(destination);
-    });
-  }, [router]);
 
   const markGoogleResponseHandled = useCallback((tokens: {
     accessToken?: string | null;
@@ -84,14 +95,6 @@ export const LoginScreen = React.memo(() => {
     return true;
   }, []);
 
-  useEffect(() => {
-    if (!state.isAuthenticated || state.hasTeacherProfile === null || state.isCheckingProfile || isProcessingGoogle) {
-      return;
-    }
-
-    redirectAfterAuth(state.hasTeacherProfile);
-  }, [isProcessingGoogle, redirectAfterAuth, state.hasTeacherProfile, state.isAuthenticated, state.isCheckingProfile]);
-
   const completeGoogleLogin = useCallback(async (tokens: {
     accessToken?: string | null;
     idToken?: string | null;
@@ -103,19 +106,17 @@ export const LoginScreen = React.memo(() => {
     isProcessingRef.current = true;
     setIsProcessingGoogle(true);
     try {
-      const hasTeacherProfile = await login(tokens);
-      setIsProcessingGoogle(false);
-      redirectAfterAuth(hasTeacherProfile);
+      await login(tokens);
     } catch (error) {
       Alert.alert(
         'Erreur de connexion',
-        error instanceof Error ? error.message : 'Une erreur est survenue'
+        getGoogleAuthErrorMessage(error)
       );
     } finally {
       isProcessingRef.current = false;
       setIsProcessingGoogle(false);
     }
-  }, [login, redirectAfterAuth]);
+  }, [login]);
 
   useEffect(() => {
     const completeGoogleResponse = async (): Promise<void> => {
@@ -165,7 +166,7 @@ export const LoginScreen = React.memo(() => {
     } catch (error) {
       Alert.alert(
         'Erreur de connexion',
-        error instanceof Error ? error.message : 'Une erreur est survenue'
+        getGoogleAuthErrorMessage(error)
       );
     }
   }, [completeGoogleLogin, markGoogleResponseHandled, promptAsync]);
@@ -183,14 +184,6 @@ export const LoginScreen = React.memo(() => {
       'Votre acces EduAssist passe par Google. Utilisez la recuperation de compte Google si vous avez perdu votre mot de passe Gmail.'
     );
   }, []);
-
-  if (state.isAuthenticated && !state.isCheckingProfile && state.hasTeacherProfile !== null) {
-    return (
-      <Redirect
-        href={(state.hasTeacherProfile ? '/home' : '/register-teacher') as Href}
-      />
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>

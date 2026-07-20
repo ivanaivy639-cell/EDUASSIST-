@@ -57,14 +57,8 @@ export const LoginScreen = React.memo(() => {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isLoading = status === 'authenticating' || isProcessingGoogle;
-
-  const redirectAfterAuth = useCallback((hasTeacherProfile: boolean) => {
-    const destination = (hasTeacherProfile ? '/home' : '/register-teacher') as Href;
-    requestAnimationFrame(() => {
-      router.replace(destination);
-    });
-  }, [router]);
 
   const markGoogleResponseHandled = useCallback((tokens: {
     accessToken?: string | null;
@@ -84,14 +78,6 @@ export const LoginScreen = React.memo(() => {
     return true;
   }, []);
 
-  useEffect(() => {
-    if (!state.isAuthenticated || state.hasTeacherProfile === null || state.isCheckingProfile || isProcessingGoogle) {
-      return;
-    }
-
-    redirectAfterAuth(state.hasTeacherProfile);
-  }, [isProcessingGoogle, redirectAfterAuth, state.hasTeacherProfile, state.isAuthenticated, state.isCheckingProfile]);
-
   const completeGoogleLogin = useCallback(async (tokens: {
     accessToken?: string | null;
     idToken?: string | null;
@@ -102,49 +88,25 @@ export const LoginScreen = React.memo(() => {
 
     isProcessingRef.current = true;
     setIsProcessingGoogle(true);
+    setErrorMessage(null);
     try {
-      const hasTeacherProfile = await login(tokens);
-      setIsProcessingGoogle(false);
-      redirectAfterAuth(hasTeacherProfile);
+      await login(tokens);
+      // Redirection is now automatically handled globally by _layout.tsx
+      // based on state.isAuthenticated and state.hasTeacherProfile
     } catch (error) {
-      Alert.alert(
-        'Erreur de connexion',
-        error instanceof Error ? error.message : 'Une erreur est survenue'
-      );
+      console.error('Google Login Error:', error);
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      setErrorMessage(message);
+      Alert.alert('Erreur de connexion', message);
     } finally {
       isProcessingRef.current = false;
       setIsProcessingGoogle(false);
     }
-  }, [login, redirectAfterAuth]);
-
-  useEffect(() => {
-    const completeGoogleResponse = async (): Promise<void> => {
-      if (response?.type !== 'success' || isProcessingGoogle) {
-        return;
-      }
-
-      const googleTokens = getGoogleTokens(response);
-
-      if (!googleTokens.idToken && !googleTokens.accessToken) {
-        Alert.alert(
-          'Connexion incomplete',
-          'Google a confirme la connexion, mais aucun token valide n a ete retourne.'
-        );
-        return;
-      }
-
-      if (!markGoogleResponseHandled(googleTokens)) {
-        return;
-      }
-
-      await completeGoogleLogin(googleTokens);
-    };
-
-    void completeGoogleResponse();
-  }, [completeGoogleLogin, isProcessingGoogle, markGoogleResponseHandled, response]);
+  }, [login]);
 
   const handleGoogleAuth = useCallback(async () => {
     try {
+      setErrorMessage(null);
       const result = await promptAsync();
 
       if (result.type !== 'success') {
@@ -163,10 +125,10 @@ export const LoginScreen = React.memo(() => {
 
       await completeGoogleLogin(googleTokens);
     } catch (error) {
-      Alert.alert(
-        'Erreur de connexion',
-        error instanceof Error ? error.message : 'Une erreur est survenue'
-      );
+      console.error('Google Auth UI Error:', error);
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      setErrorMessage(message);
+      Alert.alert('Erreur de connexion', message);
     }
   }, [completeGoogleLogin, markGoogleResponseHandled, promptAsync]);
 
@@ -184,13 +146,7 @@ export const LoginScreen = React.memo(() => {
     );
   }, []);
 
-  if (state.isAuthenticated && !state.isCheckingProfile && state.hasTeacherProfile !== null) {
-    return (
-      <Redirect
-        href={(state.hasTeacherProfile ? '/home' : '/register-teacher') as Href}
-      />
-    );
-  }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -292,6 +248,13 @@ export const LoginScreen = React.memo(() => {
             </View>
 
             <GoogleButton onPress={handleGoogleAuth} loading={isLoading} disabled={!request} />
+
+            {errorMessage && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={20} color="#FF4B4B" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
 
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
@@ -475,5 +438,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     textDecorationLine: 'underline',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 75, 75, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 75, 75, 0.3)',
+    borderRadius: 8,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+  },
+  errorText: {
+    color: '#FF4B4B',
+    fontSize: 14,
+    marginLeft: spacing.sm,
+    flex: 1,
   },
 });

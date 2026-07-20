@@ -32,11 +32,7 @@ const initialForm: RegisterTeacherData = {
   nom: '',
   prenom: '',
   telephone: '',
-  ecole: '',
-  classe: '',
-  matiere: '',
 };
-
 type FieldName = keyof RegisterTeacherData;
 
 const fields: Array<{
@@ -45,19 +41,16 @@ const fields: Array<{
   placeholder: string;
   keyboardType?: 'default' | 'phone-pad';
 }> = [
-  { name: 'nom', label: 'Nom', placeholder: 'Jean Dupont' },
-  { name: 'prenom', label: 'Prenom', placeholder: 'Marc' },
-  { name: 'telephone', label: 'Telephone', placeholder: '06 12 34 56 78', keyboardType: 'phone-pad' },
-  { name: 'ecole', label: 'Ecole', placeholder: "Nom de l'etablissement" },
-  { name: 'classe', label: 'Classe', placeholder: 'CM2' },
-  { name: 'matiere', label: 'Matiere enseignee', placeholder: 'Mathematiques' },
-];
+    { name: 'nom', label: 'Nom', placeholder: 'Jean Dupont' },
+    { name: 'prenom', label: 'Prenom', placeholder: 'Marc' },
+    { name: 'telephone', label: 'Telephone', placeholder: '06 12 34 56 78', keyboardType: 'phone-pad' },
+  ];
 
 const getFieldError = (name: FieldName, value: string): string | null => {
   const cleanValue = value.trim();
 
   if (!cleanValue) return null;
-  if ((name === 'nom' || name === 'prenom' || name === 'ecole' || name === 'matiere') && cleanValue.length < 2) {
+  if ((name === 'nom' || name === 'prenom') && cleanValue.length < 2) {
     return 'Erreur de saisie';
   }
   if (name === 'telephone' && !/^[0-9+\s]{8,}$/.test(cleanValue)) {
@@ -106,9 +99,7 @@ export default function RegisterTeacherPage() {
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         telephone: form.telephone.trim(),
-        ecole: form.ecole.trim(),
-        classe: form.classe.trim(),
-        matiere: form.matiere.trim(),
+
       });
 
       router.replace('/home' as Href);

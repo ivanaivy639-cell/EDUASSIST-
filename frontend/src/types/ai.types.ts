@@ -2,15 +2,17 @@ export type AiGenerationType = 'lesson_plan' | 'exercise' | 'quiz' | 'correction
 
 export type AiProvider = 'firebase_ai_logic' | 'local';
 
+export interface AiChatMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
 export interface AiGenerationRequest {
-  type: AiGenerationType;
-  theme: string;
-  niveau?: string;
-  matiere?: string;
-  duree?: string;
-  objectifs?: string;
-  consignes?: string;
+  message: string;
+  history?: AiChatMessage[];
   agent?: string;
+  class_id?: number;
+  course_id?: number;
 }
 
 export interface AiGenerationResult {

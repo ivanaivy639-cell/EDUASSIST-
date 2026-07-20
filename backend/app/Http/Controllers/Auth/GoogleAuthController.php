@@ -35,4 +35,14 @@ class GoogleAuthController extends Controller
             ],
         ]);
     }
+
+    public function logout(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deconnexion reussie.',
+        ]);
+    }
 }

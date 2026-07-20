@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { GoogleAuthProvider, initializeAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_ApMIi3V_CklOmiRb9kZOenh0kW1vxL0",
@@ -12,6 +12,9 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 
-export const auth = initializeAuth(app);
+// getAuth automatically picks the right persistence for each platform
+// (indexedDB on web, AsyncStorage on native via react-native adapter).
+export const auth = getAuth(app);
 
 export const googleProvider = new GoogleAuthProvider();
+

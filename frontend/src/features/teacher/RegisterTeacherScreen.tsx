@@ -15,7 +15,7 @@ import { spacing } from '../../theme/spacing';
 
 export const RegisterTeacherScreen = React.memo(() => {
   const { refreshUser } = useAuth();
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = 
+  const { control, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<RegisterTeacherSchemaType>({
       resolver: zodResolver(registerTeacherSchema),
     });
@@ -42,10 +42,6 @@ export const RegisterTeacherScreen = React.memo(() => {
           <AppInput name="nom" control={control} label="Nom" placeholder="Votre nom" error={errors.nom?.message} />
           <AppInput name="prenom" control={control} label="Prenom" placeholder="Votre prenom" error={errors.prenom?.message} />
           <AppInput name="telephone" control={control} label="Telephone" placeholder="6XX XXX XXX" keyboardType="phone-pad" error={errors.telephone?.message} />
-          <AppInput name="ecole" control={control} label="Ecole" placeholder="Nom de votre ecole" error={errors.ecole?.message} />
-          <AppInput name="classe" control={control} label="Classe principale" placeholder="Ex: Terminale C" error={errors.classe?.message} />
-          <AppInput name="matiere" control={control} label="Matiere principale" placeholder="Ex: Mathematiques" error={errors.matiere?.message} />
-
           <PrimaryButton title="Creer mon profil" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
         </View>
       </ScrollView>

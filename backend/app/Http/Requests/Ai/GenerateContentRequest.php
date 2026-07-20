@@ -15,24 +15,21 @@ class GenerateContentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', 'in:lesson_plan,exercise,quiz,correction,summary'],
-            'theme' => ['required', 'string', 'min:3', 'max:180'],
-            'niveau' => ['nullable', 'string', 'max:100'],
-            'matiere' => ['nullable', 'string', 'max:100'],
-            'duree' => ['nullable', 'string', 'max:60'],
-            'objectifs' => ['nullable', 'string', 'max:800'],
-            'consignes' => ['nullable', 'string', 'max:1200'],
+            'message' => ['required', 'string', 'min:1', 'max:2000'],
+            'history' => ['nullable', 'array'],
+            'history.*.role' => ['required', 'string', 'in:user,model'],
+            'history.*.parts' => ['required', 'array'],
+            'history.*.parts.*.text' => ['required', 'string'],
             'agent' => ['nullable', 'string', Rule::in(array_keys(config('ai.agents', [])))],
+            'class_id' => ['nullable', 'integer', 'exists:teacher_classes,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'type.required' => 'Le type de generation est requis.',
-            'type.in' => 'Le type de generation est invalide.',
-            'theme.required' => 'Le theme est requis.',
-            'theme.min' => 'Le theme doit contenir au moins 3 caracteres.',
+            'message.required' => 'Le message ne peut pas etre vide.',
         ];
     }
 }

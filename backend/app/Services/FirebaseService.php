@@ -17,7 +17,8 @@ class FirebaseService
         }
 
         try {
-            $response = Http::acceptJson()
+            $response = Http::withoutVerifying()
+                ->acceptJson()
                 ->timeout(15)
                 ->get('https://oauth2.googleapis.com/tokeninfo', [
                     'id_token' => $idToken,

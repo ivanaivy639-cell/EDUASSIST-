@@ -23,4 +23,23 @@ export const typography = {
     medium: 'System',
     bold: 'System',
   } as const,
+  // ── Aliases used by the new classe components ────────────────────
+  families: {
+    sans: 'System',
+  } as const,
+  sizes: {
+    xs: 12,
+    sm: 14,
+    base: 16,
+    lg: 18,
+    xl: 20,
+    '2xl': 24,
+  } as const,
+  weights: {
+    regular: '400' as const,
+    medium: '500' as const,
+    semibold: '600' as const,
+    bold: '700' as const,
+  } as const,
 } as const;
+

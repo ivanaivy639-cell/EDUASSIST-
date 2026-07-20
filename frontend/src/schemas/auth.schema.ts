@@ -19,18 +19,6 @@ export const registerTeacherSchema = z.object({
     .string()
     .min(8, 'Le telephone doit contenir au moins 8 chiffres')
     .regex(/^[0-9+\s]+$/, 'Le telephone ne doit contenir que des chiffres'),
-  ecole: z
-    .string()
-    .min(2, "Le nom de l'ecole est requis")
-    .max(200, "Le nom de l'ecole est trop long"),
-  classe: z
-    .string()
-    .min(1, 'La classe est requise')
-    .max(100, 'La classe est trop longue'),
-  matiere: z
-    .string()
-    .min(2, 'La matiere est requise')
-    .max(100, 'La matiere est trop longue'),
 });
 
 export type RegisterTeacherSchemaType = z.infer<typeof registerTeacherSchema>;

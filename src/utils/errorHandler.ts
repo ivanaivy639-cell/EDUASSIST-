@@ -41,12 +41,18 @@ export class ErrorHandler {
             message: 'Un profil enseignant existe deja.',
             technicalMessage: 'Conflict: teacher already exists',
           };
-        case 422:
+        case 422: {
+          const validationErrors = data?.errors as Record<string, string[]> | undefined;
+          const firstValidationError = validationErrors
+            ? Object.values(validationErrors).flat()[0]
+            : undefined;
+
           return {
             category: 'validation',
-            message: 'Veuillez verifier les informations saisies.',
+            message: firstValidationError || data?.message || 'Veuillez verifier les informations saisies.',
             technicalMessage: JSON.stringify(data?.errors),
           };
+        }
         case 500:
           return {
             category: 'api',
