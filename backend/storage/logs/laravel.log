@@ -3463,3 +3463,15 @@
 [2026-07-30 19:11:14] local.INFO: Exam started {"exam_id":9,"student":"Ketchap Ivana","matricule":"ET20231241","ip_address":"192.168.11.35"} 
 [2026-07-30 19:11:46] local.INFO: Exam submitted {"exam_id":9,"submission_id":5,"student":"Ketchap Ivana","auto_submit":false,"tab_switches":0,"status":"submitted"} 
 [2026-07-30 19:11:47] local.INFO: ExamCorrectionService: graded successfully {"submission_id":5,"score":0,"max_score":20} 
+[2026-07-31 19:23:00] local.WARNING: Groq generation failed {"status":413,"body":"{\"error\":{\"message\":\"Request too large for model `llama-3.1-8b-instant` in organization `org_01ky2b9vpef5ran6yesz3rhq81` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6230, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}
+","agent":"llama","model":"llama-3.1-8b-instant","teacher_id":1} 
+[2026-07-31 19:23:09] local.WARNING: Groq generation failed {"status":429,"body":"{\"error\":{\"message\":\"Rate limit reached for model `llama-3.1-8b-instant` in organization `org_01ky2b9vpef5ran6yesz3rhq81` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Used 3353, Requested 5556. Please try again in 29.09s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}
+","agent":"llama","model":"llama-3.1-8b-instant","teacher_id":1} 
+[2026-07-31 19:23:21] local.WARNING: Groq generation failed {"status":429,"body":"{\"error\":{\"message\":\"Rate limit reached for model `llama-3.1-8b-instant` in organization `org_01ky2b9vpef5ran6yesz3rhq81` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Used 2099, Requested 5556. Please try again in 16.55s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}
+","agent":"llama","model":"llama-3.1-8b-instant","teacher_id":1} 
+[2026-07-31 19:31:17] local.INFO: Exam started {"exam_id":10,"student":"Mbraga","matricule":"ETFDGNK","ip_address":"192.168.9.126"} 
+[2026-07-31 19:31:30] local.INFO: Exam submitted {"exam_id":10,"submission_id":6,"student":"Mbraga","auto_submit":false,"tab_switches":0,"status":"submitted"} 
+[2026-07-31 19:31:32] local.INFO: ExamCorrectionService: graded successfully {"submission_id":6,"score":0,"max_score":20} 
+[2026-07-31 19:45:12] local.INFO: Exam started {"exam_id":10,"student":"Ivy","matricule":"ETIDNU","ip_address":"192.168.9.126"} 
+[2026-07-31 19:45:42] local.INFO: Exam submitted {"exam_id":10,"submission_id":7,"student":"Ivy","auto_submit":false,"tab_switches":0,"status":"submitted"} 
+[2026-07-31 19:45:43] local.INFO: ExamCorrectionService: graded successfully {"submission_id":7,"score":0,"max_score":20} 

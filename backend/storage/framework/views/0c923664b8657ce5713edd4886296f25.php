@@ -32,7 +32,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 40px 20px;
         }
 
         /* Animated background */
@@ -57,7 +59,7 @@
         .login-container {
             width: 100%;
             max-width: 480px;
-            padding: 20px;
+            margin: auto;
         }
 
         .login-card {

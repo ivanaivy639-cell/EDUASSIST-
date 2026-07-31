@@ -11,17 +11,16 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --gold: #D4AF37;
-            --gold-dim: rgba(212, 175, 55, 0.15);
-            --gold-glow: rgba(212, 175, 55, 0.3);
-            --dark: #0A0A0A;
-            --dark-card: #111111;
-            --dark-field: #1A1A1A;
-            --border: #2A2A2A;
-            --muted: #8A8A8A;
+            --primary: #2B6CB0;
+            --primary-dark: #2C5282;
+            --dark: #121212;
+            --dark-card: #1A1A1A;
+            --dark-field: #242424;
+            --border: #333333;
+            --muted: #A0AEC0;
             --white: #FFFFFF;
-            --red: #E53E3E;
-            --green: #38A169;
+            --red: #C53030;
+            --green: #2F855A;
         }
 
         body {
@@ -32,107 +31,79 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 40px 20px;
         }
 
-        /* Animated background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
-                        radial-gradient(ellipse at 70% 80%, rgba(212, 175, 55, 0.04) 0%, transparent 50%);
-            animation: bgShift 20s ease-in-out infinite;
-            z-index: -1;
-        }
-
-        @keyframes bgShift {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-5%, -5%); }
-        }
-
+        /* No animated background */
+        
         .login-container {
             width: 100%;
-            max-width: 480px;
-            padding: 20px;
+            max-width: 500px;
+            margin: auto;
         }
 
         .login-card {
             background: var(--dark-card);
             border: 1px solid var(--border);
-            border-radius: 20px;
+            border-radius: 4px;
             padding: 40px 32px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
-                        0 0 40px rgba(212, 175, 55, 0.05);
-            animation: cardSlide 0.6s ease-out;
-        }
-
-        @keyframes cardSlide {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
 
         /* Logo / Header */
         .logo-section {
             text-align: center;
             margin-bottom: 32px;
-        }
-
-        .logo-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--gold), #B8962E);
-            border-radius: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin-bottom: 16px;
-            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.2);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
         }
 
         .logo-title {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--white);
             margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .logo-subtitle {
             font-size: 13px;
             color: var(--muted);
-            font-weight: 400;
+            font-weight: 500;
+            text-transform: uppercase;
         }
 
         /* Exam Info */
         .exam-info {
-            background: var(--gold-dim);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            border-radius: 12px;
+            background: var(--dark-field);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             padding: 16px 20px;
             margin-bottom: 28px;
         }
 
         .exam-info-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--gold);
-            margin-bottom: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
         }
 
         .exam-info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 4px 0;
+            padding: 6px 0;
         }
 
         .exam-info-label {
             font-size: 13px;
             color: var(--muted);
+            font-weight: 600;
         }
 
         .exam-info-value {
@@ -163,87 +134,64 @@
 
         .form-input {
             width: 100%;
-            padding: 14px 16px;
+            padding: 12px 16px;
             background: var(--dark-field);
-            border: 1.5px solid var(--border);
-            border-radius: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
             font-size: 15px;
             font-family: 'Inter', sans-serif;
             color: var(--white);
             outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            transition: border-color 0.2s;
         }
 
         .form-input::placeholder {
-            color: #555;
+            color: #666;
         }
 
         .form-input:focus {
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px var(--gold-glow);
+            border-color: var(--primary);
         }
 
         /* Warning box */
         .warning-box {
-            background: rgba(229, 62, 62, 0.1);
-            border: 1px solid rgba(229, 62, 62, 0.3);
-            border-radius: 10px;
+            background: rgba(197, 48, 48, 0.1);
+            border-left: 4px solid var(--red);
             padding: 14px 16px;
             margin-bottom: 24px;
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-        }
-
-        .warning-icon {
-            font-size: 18px;
-            flex-shrink: 0;
-            margin-top: 1px;
         }
 
         .warning-text {
             font-size: 12px;
-            color: #F5A0A0;
+            color: #FC8181;
             line-height: 1.6;
         }
 
         /* Submit button */
         .submit-btn {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, var(--gold), #B8962E);
+            padding: 14px;
+            background: var(--primary);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 4px;
+            font-size: 14px;
             font-weight: 700;
             font-family: 'Inter', sans-serif;
-            color: #000;
+            color: var(--white);
             cursor: pointer;
-            transition: all 0.3s;
-            letter-spacing: 0.5px;
-            position: relative;
-            overflow: hidden;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+            background: var(--primary-dark);
         }
 
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .submit-btn::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .submit-btn:hover::after {
-            left: 100%;
+        .submit-btn:disabled {
+            background: var(--border);
+            color: var(--muted);
+            cursor: not-allowed;
         }
 
         /* Error message */
@@ -262,13 +210,10 @@
         .footer {
             text-align: center;
             margin-top: 24px;
-            font-size: 12px;
-            color: #444;
-        }
-
-        .footer span {
-            color: var(--gold);
-            font-weight: 600;
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* Responsive */
@@ -282,9 +227,8 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo-section">
-                <div class="logo-icon">📝</div>
-                <div class="logo-title">Évaluation en ligne</div>
-                <div class="logo-subtitle">EduAssist — Plateforme d'évaluation sécurisée</div>
+                <div class="logo-title">Portail d'Évaluation</div>
+                <div class="logo-subtitle">Accès Sécurisé — Épreuve Académique</div>
             </div>
 
             <div class="exam-info">
@@ -344,23 +288,22 @@
                 </div>
 
                 <div class="warning-box">
-                    <span class="warning-icon">⚠️</span>
                     <span class="warning-text">
-                        <strong>Règles de l'épreuve :</strong><br>
-                        • Le chronomètre démarre dès que vous cliquez sur "Commencer"<br>
-                        • Quitter l'écran plus de 2 fois entraîne la fermeture de l'épreuve<br>
-                        • Le copier-coller et le clic droit sont désactivés<br>
-                        • Votre activité est surveillée pendant toute la durée de l'épreuve
+                        <strong>INSTRUCTIONS STRICTES :</strong><br>
+                        - Le temps imparti s'écoule de manière continue.<br>
+                        - Toute sortie de cette interface sera enregistrée (Tolérance : 2 sorties).<br>
+                        - Les fonctions de copie et de collage sont bloquées.<br>
+                        - La tricherie entraîne l'annulation automatique de la copie.
                     </span>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    🚀 Commencer l'épreuve
+                    Accéder à l'épreuve
                 </button>
             </form>
 
             <div class="footer">
-                Propulsé par <span>EduAssist</span>
+                SYSTÈME D'ÉVALUATION SÉCURISÉ
             </div>
         </div>
     </div>

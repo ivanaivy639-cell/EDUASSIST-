@@ -57,9 +57,12 @@
 
         /* ═══════════ HEADER ═══════════ */
         .exam-header {
-            position: sticky;
+            position: fixed;
             top: 0;
-            z-index: 100;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1000;
             background: rgba(10, 10, 10, 0.95);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
@@ -206,9 +209,9 @@
         /* ═══════════ MAIN CONTENT ═══════════ */
         .exam-body {
             max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            min-height: calc(100vh - 60px);
+            margin: 70px auto 40px auto; /* 70px to account for fixed header */
+            padding: 20px;
+            min-height: calc(100vh - 110px);
         }
 
         /* Left: Questions (Now Center) */
@@ -260,55 +263,18 @@
             cursor: pointer;
         }
 
-        /* Inline Add Answer Button */
-        .add-answer-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: var(--dark-field);
-            border: 1px solid var(--border);
-            color: var(--gold);
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 12px;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s, transform 0.2s;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-
-        .interactive-block:hover .add-answer-btn {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .add-answer-btn:hover {
-            background: var(--gold-dim);
-            border-color: var(--gold);
-        }
-
-        /* Inline Answer Textarea Container */
-        .inline-answer-container {
-            margin-top: 12px;
-            margin-bottom: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
+        /* Answer Textarea */
         .inline-answer-textarea {
             width: 100%;
-            min-height: 100px;
-            padding: 16px;
+            min-height: 400px;
+            padding: 24px;
             background: rgba(20,20,20,0.8);
             border: 1.5px solid var(--border);
-            border-radius: 8px;
-            font-size: 15px;
+            border-radius: 12px;
+            font-size: 16px;
             font-family: 'Inter', sans-serif;
             color: var(--green);
-            line-height: 1.6;
+            line-height: 1.8;
             resize: vertical;
             outline: none;
             transition: border-color 0.3s, box-shadow 0.3s;
@@ -323,20 +289,6 @@
         .inline-answer-textarea::placeholder {
             color: #555;
             font-style: italic;
-        }
-        
-        .remove-answer-btn {
-            align-self: flex-end;
-            background: transparent;
-            border: none;
-            color: var(--muted);
-            font-size: 12px;
-            cursor: pointer;
-            padding: 4px;
-        }
-        
-        .remove-answer-btn:hover {
-            color: var(--red);
         }
 
         .questions-content h1 { font-size: 24px; color: var(--white); margin: 32px 0 16px; }
@@ -380,9 +332,37 @@
             margin: 16px 0;
         }
 
-        /* Right: Answers (HIDDEN) */
+        /* Right: Answers */
         .answers-panel {
-            display: none;
+            margin-top: 40px;
+            border-top: 1px dashed var(--border);
+            padding-top: 40px;
+            padding-bottom: 60px;
+        }
+
+        .submit-btn-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 16px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, var(--green), #2F855A);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            color: var(--white);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+        }
+
+        .submit-btn-bottom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 161, 105, 0.4);
         }
 
         /* ═══════════ MODAL OVERLAY ═══════════ */
@@ -551,7 +531,21 @@
             </div>
         </section>
 
-        <!-- Note: La section des réponses est désormais gérée dynamiquement (inline) -->
+        <!-- Note: La section des réponses est désormais gérée par un seul champ texte global -->
+        <section class="answers-panel" id="answersPanel">
+            <div class="questions-panel-title">
+                <span>✍️</span> Feuille de Composition
+            </div>
+            <textarea 
+                id="globalAnswerArea" 
+                class="inline-answer-textarea" 
+                placeholder="Rédigez vos réponses ici. Pensez à bien numéroter vos réponses pour faciliter la correction..."
+            ></textarea>
+            
+            <button class="submit-btn-bottom" onclick="confirmSubmit()">
+                ✅ Terminer et Soumettre ma copie
+            </button>
+        </section>
     </main>
 
     <!-- Modal de confirmation de soumission -->
@@ -840,20 +834,11 @@
 
             closeModal('confirmModal');
 
-            // Gather all inline answers
-            let answers = "";
-            const answerContainers = document.querySelectorAll('.inline-answer-container');
-            answerContainers.forEach(container => {
-                const textarea = container.querySelector('.inline-answer-textarea');
-                const val = textarea.value.trim();
-                if (val) {
-                    const questionText = container.getAttribute('data-question') || 'Réponse :';
-                    answers += `[${questionText}]\n${val}\n\n`;
-                }
-            });
+            // Gather global answer
+            let answers = document.getElementById('globalAnswerArea').value.trim();
             
             // Fallback si rien n'a été répondu
-            if (!answers.trim()) {
+            if (!answers) {
                 answers = "(Aucune réponse fournie)";
             }
 
@@ -893,52 +878,11 @@
         
         // ═══════════ INLINE ANSWERING LOGIC ═══════════
         function setupInlineAnswering() {
-            const content = document.getElementById('questionsContent');
-            const blocks = content.querySelectorAll('p, li, h3, h4, h5');
-            
-            blocks.forEach(block => {
-                block.classList.add('interactive-block');
-                
-                const btn = document.createElement('button');
-                btn.className = 'add-answer-btn';
-                btn.innerHTML = '✏️ Répondre';
-                
-                btn.onclick = function(e) {
-                    e.stopPropagation();
-                    // Si une zone existe déjà, ne rien faire
-                    if (block.nextElementSibling && block.nextElementSibling.classList.contains('inline-answer-container')) {
-                        block.nextElementSibling.querySelector('textarea').focus();
-                        return;
-                    }
-                    
-                    const container = document.createElement('div');
-                    container.className = 'inline-answer-container';
-                    
-                    // Récupérer un extrait du texte pour l'associer à la réponse
-                    const blockText = block.innerText.replace('✏️ Répondre', '').trim();
-                    const snippet = blockText.length > 50 ? blockText.substring(0, 50) + '...' : blockText;
-                    container.setAttribute('data-question', 'Suite à: ' + snippet);
-                    
-                    const textarea = document.createElement('textarea');
-                    textarea.className = 'inline-answer-textarea';
-                    textarea.placeholder = 'Rédigez votre réponse ici...';
-                    
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-answer-btn';
-                    removeBtn.innerHTML = 'Annuler';
-                    removeBtn.onclick = function() {
-                        container.remove();
-                    };
-                    
-                    container.appendChild(textarea);
-                    container.appendChild(removeBtn);
-                    
-                    block.parentNode.insertBefore(container, block.nextSibling);
-                    textarea.focus();
-                };
-                
-                block.appendChild(btn);
-            });
+            // Restore draft if any
+            const savedDraft = localStorage.getItem('exam_draft_' + SUBMISSION_ID);
+            if (savedDraft) {
+                document.getElementById('globalAnswerArea').value = savedDraft;
+            }
         }
 
         function autoSubmit(reason) {
@@ -987,15 +931,7 @@
         // ═══════════ AUTOSAVE ═══════════
         let lastSavedContent = '';
         function autoSave() {
-            let answersData = {};
-            const answerContainers = document.querySelectorAll('.inline-answer-container');
-            answerContainers.forEach(container => {
-                const qText = container.getAttribute('data-question');
-                const textarea = container.querySelector('.inline-answer-textarea');
-                answersData[qText] = textarea.value;
-            });
-            
-            const content = JSON.stringify(answersData);
+            const content = document.getElementById('globalAnswerArea').value.trim();
             if (content !== lastSavedContent) {
                 lastSavedContent = content;
                 try {

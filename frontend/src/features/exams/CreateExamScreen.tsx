@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { ExamService } from '../../services/ExamService';
 
@@ -133,6 +135,28 @@ export const CreateExamScreen = React.memo(() => {
       Alert.alert('Erreur', msg);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleImportDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/plain', 'text/markdown', 'text/csv', 'application/json'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        try {
+          const fileContent = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.UTF8 });
+          setRawContent(fileContent);
+          Alert.alert('Succès', 'Le contenu du fichier a été importé dans l\'éditeur.');
+        } catch (readError) {
+          Alert.alert('Erreur', 'Impossible de lire le contenu de ce fichier. Assurez-vous qu\'il s\'agit d\'un fichier texte (.txt, .md).');
+        }
+      }
+    } catch (err) {
+      console.log('Erreur lors de la sélection du document:', err);
     }
   };
 
@@ -373,7 +397,13 @@ export const CreateExamScreen = React.memo(() => {
 
           {/* Content */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Contenu de l'épreuve *</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={[styles.label, { marginBottom: 0 }]}>Contenu de l'épreuve *</Text>
+              <TouchableOpacity onPress={handleImportDocument} style={styles.importBtn}>
+                <Ionicons name="document-text-outline" size={14} color={GOLD} />
+                <Text style={styles.importBtnText}>Importer un fichier</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.labelHint}>
               💡 Collez ici le contenu de l'épreuve. Si le texte contient la balise
               [SECTION_CORRIGE], l'épreuve et le corrigé seront séparés automatiquement.
@@ -478,6 +508,22 @@ const styles = StyleSheet.create({
     color: MUTED,
     marginBottom: 10,
     lineHeight: 18,
+  },
+  importBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: GOLD_DIM,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
+  },
+  importBtnText: {
+    color: GOLD,
+    fontSize: 12,
+    fontWeight: '600',
   },
   input: {
     backgroundColor: FIELD,

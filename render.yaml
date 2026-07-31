@@ -1,0 +1,60 @@
+# ── Render Blueprint ─────────────────────────────────────
+# Ce fichier configure automatiquement les services sur Render.
+# https://render.com/docs/blueprint-spec
+
+databases:
+  - name: eduassist-db
+    plan: free
+    databaseName: eduassist
+    user: eduassist_user
+    region: frankfurt
+
+services:
+  - type: web
+    name: eduassist-api
+    plan: free
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: frankfurt
+    envVars:
+      - key: APP_NAME
+        value: EduAssist
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://eduassist-api.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eduassist-db
+          property: connectionString
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: CACHE_DRIVER
+        value: file
+      - key: SESSION_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
+      - key: GOOGLE_WEB_CLIENT_ID
+        sync: false
+      - key: GOOGLE_ANDROID_CLIENT_ID
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: AI_PROVIDER
+        value: groq

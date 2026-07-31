@@ -587,25 +587,7 @@ export const AiAssistantScreen = React.memo(({
         >
           {messages.map(renderBubble)}
 
-          {/* Suggestions chips — shown after welcome message */}
-          {showSuggestions && messages.length === 1 && !activeConversationId && (
-            <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>Suggestions rapides</Text>
-              <View style={styles.suggestionsGrid}>
-                {(mode === 'lesson' ? LESSON_SUGGESTIONS : DASHBOARD_SUGGESTIONS).map((s) => (
-                  <TouchableOpacity
-                    key={s.label}
-                    style={styles.suggestionChip}
-                    onPress={() => handleSuggestionTap(s.prompt, s.type)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.suggestionIcon}>{s.icon}</Text>
-                    <Text style={styles.suggestionLabel}>{s.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
+
 
           {/* Loading indicator */}
           {isLoading && (
@@ -635,6 +617,23 @@ export const AiAssistantScreen = React.memo(({
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Persistent Quick Actions */}
+        <View style={styles.quickActionsWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsScroll}>
+            {(mode === 'lesson' ? LESSON_SUGGESTIONS : DASHBOARD_SUGGESTIONS).map((s) => (
+              <TouchableOpacity
+                key={s.label}
+                style={styles.quickActionChip}
+                onPress={() => handleSuggestionTap(s.prompt, s.type)}
+                disabled={isLoading}
+              >
+                <Text style={styles.quickActionIcon}>{s.icon}</Text>
+                <Text style={styles.quickActionLabel}>{s.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Input bar */}
         <View style={styles.inputContainer}>
@@ -908,43 +907,34 @@ const styles = StyleSheet.create({
     height: 14,
   },
 
-  // Suggestions
-  suggestionsContainer: {
-    marginTop: spacing.sm,
-    gap: spacing.sm,
+  // Persistent Quick Actions
+  quickActionsWrapper: {
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: FIELD_BORDER,
+    backgroundColor: BLACK,
   },
-  suggestionsTitle: {
-    color: MUTED,
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 34,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  suggestionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  quickActionsScroll: {
+    paddingHorizontal: spacing.md,
     gap: 8,
-    marginLeft: 34,
   },
-  suggestionChip: {
+  quickActionChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: FIELD,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: FIELD_BORDER,
     gap: 6,
   },
-  suggestionIcon: {
+  quickActionIcon: {
     fontSize: 14,
   },
-  suggestionLabel: {
+  quickActionLabel: {
     color: WHITE,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
   },
 

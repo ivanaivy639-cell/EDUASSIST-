@@ -11,7 +11,7 @@
 
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: #0A0A0A;
+            background: #121212;
             color: #FFFFFF;
             min-height: 100vh;
             display: flex;
@@ -34,13 +34,15 @@
         .error-icon {
             width: 80px;
             height: 80px;
-            background: rgba(229, 62, 62, 0.15);
-            border: 2px solid rgba(229, 62, 62, 0.3);
-            border-radius: 50%;
+            background: rgba(197, 48, 48, 0.1);
+            border: 1px solid #C53030;
+            border-radius: 4px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #C53030;
             margin-bottom: 24px;
         }
 
@@ -59,9 +61,9 @@
         }
 
         .reason-card {
-            background: #111111;
-            border: 1px solid #2A2A2A;
-            border-radius: 14px;
+            background: #1A1A1A;
+            border: 1px solid #333333;
+            border-radius: 4px;
             padding: 20px 24px;
             margin-bottom: 24px;
         }
@@ -81,31 +83,18 @@
         }
 
         .footer {
-            font-size: 12px;
-            color: #444;
+            font-size: 11px;
+            color: #A0AEC0;
             margin-top: 20px;
-        }
-
-        .footer span {
-            color: #D4AF37;
-            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="error-icon">
-            @if ($reason === 'already_submitted')
-                📋
-            @elseif ($reason === 'expired')
-                ⏰
-            @elseif ($reason === 'not_started')
-                ⏳
-            @elseif ($reason === 'ended')
-                🛑
-            @else
-                🚫
-            @endif
+            !
         </div>
 
         <h1 class="title">
@@ -134,7 +123,7 @@
         </p>
 
         <div class="footer">
-            Propulsé par <span>EduAssist</span>
+            SYSTÈME D'ÉVALUATION SÉCURISÉ
         </div>
     </div>
 </body>
