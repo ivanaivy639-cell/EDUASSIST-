@@ -15,9 +15,6 @@ class TeacherResource extends JsonResource
             'prenom' => $this->prenom,
             'email' => $this->user->email,
             'telephone' => $this->telephone,
-            'ecole' => $this->ecole,
-            'classe' => $this->classe,
-            'matiere' => $this->matiere,
         ];
     }
 }

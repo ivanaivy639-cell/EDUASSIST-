@@ -18,7 +18,27 @@ export class AiService {
 
   static async getAgents(): Promise<AiAgentsResponse> {
     const response = await apiClient.get<AiAgentsResponse>(API_ENDPOINTS.AI.AGENTS);
-
     return response.data;
+  }
+
+  // --- Stubs for UI features ---
+  static async getConversations(courseId?: string, chapterId?: string, lessonId?: string): Promise<any> {
+    return { success: true, data: [] };
+  }
+
+  static async getConversation(id: number): Promise<any> {
+    return { success: true, data: { messages: [] } };
+  }
+
+  static async deleteConversation(id: number): Promise<any> {
+    return { success: true };
+  }
+
+  static async parseDocument(uri: string, name: string, type: string): Promise<any> {
+    return { success: true, data: { text: "Contenu du document simulé." } };
+  }
+
+  static async exportChat(chatText: string, format: string, title: string): Promise<any> {
+    return { success: true, data: { download_url: "http://example.com/export." + format } };
   }
 }

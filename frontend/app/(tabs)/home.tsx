@@ -3,7 +3,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image, Act
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, type Href } from 'expo-router';
+import { router, type Href, Link } from 'expo-router';
 
 import { useAuth } from '@/src/hooks/useAuth';
 import { spacing } from '@/src/theme/spacing';
@@ -23,6 +23,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [isAddClassVisible, setAddClassVisible] = useState(false);
   const [newClassName, setNewClassName] = useState('');
+  const [newClassLevel, setNewClassLevel] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
   const loadClasses = useCallback(() => {
@@ -50,9 +51,10 @@ export default function HomeScreen() {
     if (!newClassName.trim()) return;
     setIsAdding(true);
     try {
-      await ClassService.createClass(newClassName.trim());
+      await ClassService.createClass(newClassName.trim(), newClassLevel.trim() || undefined);
       setAddClassVisible(false);
       setNewClassName('');
+      setNewClassLevel('');
       loadClasses();
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de créer la classe.');
@@ -153,12 +155,14 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Actions Rapides</Text>
           <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/ai' as Href)}>
-              <LinearGradient colors={['#F7DA73', '#D4AF37']} style={styles.actionIconBox}>
-                <Ionicons name="sparkles" size={28} color={BLACK} />
-              </LinearGradient>
-              <Text style={styles.actionText}>Assistant IA</Text>
-            </TouchableOpacity>
+            <Link href="/assistant" asChild>
+              <TouchableOpacity style={styles.actionButton}>
+                <LinearGradient colors={['#F7DA73', '#D4AF37']} style={styles.actionIconBox}>
+                  <Ionicons name="sparkles" size={28} color={BLACK} />
+                </LinearGradient>
+                <Text style={styles.actionText}>L'Assistant</Text>
+              </TouchableOpacity>
+            </Link>
             
             <TouchableOpacity style={styles.actionButton}>
               <View style={styles.actionIconBoxSecondary}>
@@ -226,12 +230,19 @@ export default function HomeScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nouvelle Classe</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { marginBottom: spacing.md }]}
               placeholder="Nom de la classe (ex: Terminale S)"
               placeholderTextColor={MUTED}
               value={newClassName}
               onChangeText={setNewClassName}
               autoFocus
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Niveau (ex: Lycée, 3ème, etc.)"
+              placeholderTextColor={MUTED}
+              value={newClassLevel}
+              onChangeText={setNewClassLevel}
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setAddClassVisible(false)}>

@@ -51,9 +51,6 @@ export interface TeacherProfile {
   prenom: string;
   email: string;
   telephone: string;
-  ecole: string;
-  classe: string;
-  matiere: string;
 }
 
 export interface TeacherProfileResponse {
@@ -66,9 +63,6 @@ export interface RegisterTeacherData {
   nom: string;
   prenom: string;
   telephone: string;
-  ecole: string;
-  classe: string;
-  matiere: string;
 }
 
 export interface RegisterTeacherResponse {

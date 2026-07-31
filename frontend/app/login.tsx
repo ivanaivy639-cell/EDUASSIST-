@@ -19,11 +19,7 @@ export default function LoginPage() {
   }
 
   if (state.isAuthenticated && state.hasTeacherProfile !== null) {
-    return (
-      <Redirect
-        href={(state.hasTeacherProfile ? '/home' : '/register-teacher') as Href}
-      />
-    );
+    return <LoadingOverlay message="Connexion reussie, redirection..." />;
   }
 
   return <LoginScreen />;

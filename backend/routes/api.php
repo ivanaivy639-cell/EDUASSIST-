@@ -30,7 +30,32 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [\App\Http\Controllers\ClassCourseController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\ClassCourseController::class, 'store']);
             Route::get('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'destroy']);
+
+            // Cours d'une classe
+            Route::get('/{id}/courses/{courseId}', [\App\Http\Controllers\ClassCourseController::class, 'showCourse']);
             Route::post('/{id}/courses', [\App\Http\Controllers\ClassCourseController::class, 'storeCourse']);
+            Route::put('/{id}/courses/{courseId}', [\App\Http\Controllers\ClassCourseController::class, 'updateCourse']);
+            Route::delete('/{id}/courses/{courseId}', [\App\Http\Controllers\ClassCourseController::class, 'destroyCourse']);
+
+            // Chapitres d'un cours
+            Route::post('/{id}/courses/{courseId}/chapters', [\App\Http\Controllers\ClassCourseController::class, 'storeChapter']);
+            Route::delete('/{id}/courses/{courseId}/chapters/{chapterId}', [\App\Http\Controllers\ClassCourseController::class, 'destroyChapter']);
+
+            // Leçons d'un chapitre
+            Route::post('/{id}/courses/{courseId}/chapters/{chapterId}/lessons', [\App\Http\Controllers\ClassCourseController::class, 'storeLesson']);
+            Route::delete('/{id}/courses/{courseId}/chapters/{chapterId}/lessons/{lessonId}', [\App\Http\Controllers\ClassCourseController::class, 'destroyLesson']);
+        });
+
+        // ── Gestion des examens (Espace Enseignant) ────────────────
+        Route::prefix('exams')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Exam\ExamController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Exam\ExamController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Exam\ExamController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\Exam\ExamController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Exam\ExamController::class, 'destroy']);
+            Route::get('/{id}/results', [\App\Http\Controllers\Exam\ExamController::class, 'results']);
         });
     });
 

@@ -16,10 +16,7 @@ class RegisterTeacherRequest extends FormRequest
         return [
             'nom' => ['required', 'string', 'min:2', 'max:100'],
             'prenom' => ['required', 'string', 'min:2', 'max:100'],
-            'telephone' => ['required', 'string', 'min:8', 'regex:/^[0-9+\s]+$/'],
-            'ecole' => ['required', 'string', 'min:2', 'max:200'],
-            'classe' => ['required', 'string', 'min:1', 'max:100'],
-            'matiere' => ['required', 'string', 'min:2', 'max:100'],
+            'telephone' => ['required', 'string', 'min:8'],
         ];
     }
 
@@ -30,9 +27,6 @@ class RegisterTeacherRequest extends FormRequest
             'prenom.required' => 'Le prenom est requis.',
             'telephone.required' => 'Le telephone est requis.',
             'telephone.regex' => 'Le telephone ne doit contenir que des chiffres.',
-            'ecole.required' => 'L\'ecole est requise.',
-            'classe.required' => 'La classe est requise.',
-            'matiere.required' => 'La matiere est requise.',
         ];
     }
 }

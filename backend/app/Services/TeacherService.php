@@ -20,9 +20,6 @@ class TeacherService
                 'nom' => $data['nom'],
                 'prenom' => $data['prenom'],
                 'telephone' => $data['telephone'],
-                'ecole' => $data['ecole'],
-                'classe' => $data['classe'],
-                'matiere' => $data['matiere'],
             ]);
         });
     }

@@ -41,22 +41,13 @@ const fields: Array<{
   placeholder: string;
   keyboardType?: 'default' | 'phone-pad';
 }> = [
-    { name: 'nom', label: 'Nom', placeholder: 'Jean Dupont' },
-    { name: 'prenom', label: 'Prenom', placeholder: 'Marc' },
-    { name: 'telephone', label: 'Telephone', placeholder: '06 12 34 56 78', keyboardType: 'phone-pad' },
+    { name: 'nom', label: 'Nom', placeholder: 'Entrez votre nom' },
+    { name: 'prenom', label: 'Prenom', placeholder: 'Entrez votre prenom' },
+    { name: 'telephone', label: 'Telephone', placeholder: '6 ....', keyboardType: 'phone-pad' },
   ];
 
 const getFieldError = (name: FieldName, value: string): string | null => {
-  const cleanValue = value.trim();
-
-  if (!cleanValue) return null;
-  if ((name === 'nom' || name === 'prenom') && cleanValue.length < 2) {
-    return 'Erreur de saisie';
-  }
-  if (name === 'telephone' && !/^[0-9+\s]{8,}$/.test(cleanValue)) {
-    return 'Erreur de saisie';
-  }
-
+  // Aucune validation stricte côté client, on accepte tout.
   return null;
 };
 
@@ -77,9 +68,8 @@ export default function RegisterTeacherPage() {
   );
 
   const isValid = useMemo(
-    () =>
-      fields.every((field) => form[field.name].trim().length > 0 && !errors[field.name]),
-    [errors, form]
+    () => fields.every((field) => form[field.name].trim().length > 0),
+    [form]
   );
 
   const updateField = useCallback((name: FieldName, value: string) => {
@@ -89,17 +79,11 @@ export default function RegisterTeacherPage() {
   const handleSubmit = useCallback(async () => {
     setSubmitted(true);
 
-    if (!isValid) {
-      Alert.alert('Formulaire incomplet', 'Veuillez verifier les informations saisies.');
-      return;
-    }
-
     try {
       await registerTeacher({
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         telephone: form.telephone.trim(),
-
       });
 
       router.replace('/home' as Href);

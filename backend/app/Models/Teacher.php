@@ -14,9 +14,6 @@ class Teacher extends Model
         'nom',
         'prenom',
         'telephone',
-        'ecole',
-        'classe',
-        'matiere',
     ];
 
     protected $casts = [

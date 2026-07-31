@@ -13,17 +13,5 @@ export default function Index() {
     return <LoadingOverlay message="Chargement..." />;
   }
 
-  if (!state.isAuthenticated) {
-    return <Redirect href="/login" />;
-  }
-
-  if (state.hasTeacherProfile === null) {
-    return <LoadingOverlay message="Verification du profil..." />;
-  }
-
-  if (state.hasTeacherProfile === false) {
-    return <Redirect href={'/register-teacher' as Href} />;
-  }
-
-  return <Redirect href={'/home' as Href} />;
+  return <LoadingOverlay message="Chargement..." />;
 }

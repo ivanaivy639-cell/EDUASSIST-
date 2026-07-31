@@ -21,17 +21,18 @@ function AuthNavigation() {
 
     const isLogin = segments[0] === 'login';
     const isRegister = segments[0] === 'register-teacher';
-    const inTabs = segments[0] === '(tabs)';
+    const isIndex = segments.length === 0 || segments[0] === 'index';
 
     // Defer routing to prevent navigation state conflicts during render
     const timeoutId = setTimeout(() => {
       if (!state.isAuthenticated) {
-        if (!isLogin && segments[0] !== 'index') {
+        if (!isLogin) {
           router.replace('/login');
         }
       } else if (state.hasTeacherProfile !== null) {
         if (state.hasTeacherProfile) {
-          if (!inTabs) {
+          // L'utilisateur est connecté et a un profil, il ne doit pas rester sur les pages d'auth/accueil
+          if (isLogin || isRegister || isIndex) {
             router.replace('/home');
           }
         } else {

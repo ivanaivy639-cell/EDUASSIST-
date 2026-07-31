@@ -1,0 +1,344 @@
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CourseContentService } from '@/src/services/CourseContentService';
+import { AiService } from '@/src/services/AiService';
+import { Chapter } from '@/src/types/class.types';
+import { spacing } from '@/src/theme/spacing';
+
+const GOLD = '#D4AF37';
+const BLACK = '#000000';
+const FIELD = '#242424';
+const FIELD_BORDER = '#333333';
+const MUTED = '#A9A9A9';
+const WHITE = '#FFFFFF';
+
+export default function ChapterEditorScreen() {
+  const router = useRouter();
+  const { chapterId, courseId } = useLocalSearchParams();
+  
+  const cId = Number(courseId);
+  const isAiDraft = chapterId === 'ai';
+  const chId = isAiDraft ? 0 : Number(chapterId);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [exportingAs, setExportingAs] = useState<'pdf' | 'word' | null>(null);
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+
+  const contentInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const fetchChapter = async () => {
+      if (isAiDraft) {
+        // Load content from AsyncStorage
+        const draftContent = await AsyncStorage.getItem('temp_ai_content');
+        if (draftContent) {
+          setTitle('Document généré');
+          setContent(draftContent);
+          // Set a fake chapter to satisfy the render
+          setChapter({ id: 0, title: 'Brouillon', content: draftContent, course_id: cId, order: 0, status: 'pending' });
+        } else {
+          Alert.alert('Erreur', 'Aucun brouillon trouvé.');
+        }
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await CourseContentService.getChapters(cId);
+        if (response.success) {
+          const foundChapter = response.data.find((c: Chapter) => c.id === chId);
+          if (foundChapter) {
+            setChapter(foundChapter);
+            setTitle(foundChapter.title);
+            setContent(foundChapter.content || '');
+          }
+        }
+      } catch (error) {
+        Alert.alert('Erreur', 'Impossible de charger le chapitre.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChapter();
+  }, [cId, chId, isAiDraft]);
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      Alert.alert('Erreur', 'Le titre ne peut pas être vide.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isAiDraft) {
+        const response = await CourseContentService.createChapter(cId, {
+          title,
+          content,
+        });
+        if (response.success) {
+          Alert.alert('Succès', 'Document enregistré en base.');
+          router.replace(`/chapter/${response.data.id}?courseId=${cId}`);
+        }
+      } else {
+        const response = await CourseContentService.updateChapter(cId, chId, {
+          title,
+          content,
+        });
+        if (response.success) {
+          Alert.alert('Succès', 'Document enregistré en base.');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de sauvegarder.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async (format: 'pdf' | 'word') => {
+    if (!content.trim()) return;
+    setExportingAs(format);
+    try {
+      const res = await AiService.exportChat(content, format);
+      if (res.success && res.data?.download_url) {
+        Alert.alert('Succès', `Le document a été exporté en ${format.toUpperCase()} et sauvegardé dans vos Documents.`);
+        if (Platform.OS === 'web') {
+          window.open(res.data.download_url, '_blank');
+        }
+      } else {
+        throw new Error('Erreur serveur lors de la génération.');
+      }
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message || 'Impossible d\'exporter le document.');
+    } finally {
+      setExportingAs(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={GOLD} />
+        <Text style={styles.loadingText}>Ouverture du document...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!chapter) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Document introuvable.</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backText}>Retour</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Toolbar */}
+      <View style={styles.toolbar}>
+        <TouchableOpacity style={styles.toolbarBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={WHITE} />
+        </TouchableOpacity>
+        
+        <View style={styles.toolbarActions}>
+          <TouchableOpacity 
+            style={[styles.exportBtn, exportingAs === 'pdf' && styles.exporting]} 
+            onPress={() => handleExport('pdf')}
+            disabled={exportingAs !== null}
+          >
+            {exportingAs === 'pdf' ? <ActivityIndicator size="small" color={GOLD} /> : <Ionicons name="document-text-outline" size={18} color={MUTED} />}
+            <Text style={styles.exportBtnText}>PDF</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.exportBtn, exportingAs === 'word' && styles.exporting]} 
+            onPress={() => handleExport('word')}
+            disabled={exportingAs !== null}
+          >
+            {exportingAs === 'word' ? <ActivityIndicator size="small" color={GOLD} /> : <Ionicons name="document-outline" size={18} color={MUTED} />}
+            <Text style={styles.exportBtnText}>Word</Text>
+          </TouchableOpacity>
+
+          {saving ? (
+            <ActivityIndicator color={GOLD} style={{ marginLeft: spacing.md }} />
+          ) : (
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+              <Ionicons name="save-outline" size={18} color={BLACK} />
+              <Text style={styles.saveBtnText}>Enregistrer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Editor Canvas */}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView 
+          style={styles.scrollCanvas} 
+          contentContainerStyle={styles.canvasContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.paper}>
+            <TextInput
+              style={styles.paperTitle}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Titre du document..."
+              placeholderTextColor="#CCCCCC"
+              multiline
+              scrollEnabled={false}
+            />
+            <TextInput
+              ref={contentInputRef}
+              style={styles.paperContent}
+              value={content}
+              onChangeText={setContent}
+              placeholder="Commencez à écrire ici..."
+              placeholderTextColor="#CCCCCC"
+              multiline
+              scrollEnabled={false}
+              textAlignVertical="top"
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#1E1E1E',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#1E1E1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: MUTED,
+    marginTop: spacing.md,
+    fontSize: 16,
+  },
+  backButton: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: FIELD,
+    borderRadius: 8,
+  },
+  backText: {
+    color: WHITE,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: BLACK,
+    borderBottomWidth: 1,
+    borderBottomColor: FIELD_BORDER,
+  },
+  toolbarBtn: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  toolbarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  exportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: FIELD,
+    borderWidth: 1,
+    borderColor: FIELD_BORDER,
+    gap: 6,
+  },
+  exporting: {
+    opacity: 0.7,
+  },
+  exportBtnText: {
+    color: MUTED,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: GOLD,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+    marginLeft: 8,
+  },
+  saveBtnText: {
+    color: BLACK,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  scrollCanvas: {
+    flex: 1,
+  },
+  canvasContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    paddingBottom: 100,
+  },
+  paper: {
+    backgroundColor: WHITE,
+    width: '100%',
+    maxWidth: 800,
+    minHeight: 1000,
+    borderRadius: 8,
+    padding: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  paperTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 20,
+  },
+  paperContent: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333333',
+    minHeight: 500,
+  },
+});

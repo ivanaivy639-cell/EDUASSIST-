@@ -26,9 +26,6 @@ type NativeGoogleAuthResult = {
 };
 
 export const useGoogleAuth = () => {
-  // On web we no longer need expo-auth-session; Firebase signInWithPopup
-  // uses the already-registered redirect URI:
-  // https://eduassist-prod.firebaseapp.com/__/auth/handler
   const [webReady, setWebReady] = useState(Platform.OS === 'web');
 
   useEffect(() => {
@@ -43,15 +40,9 @@ export const useGoogleAuth = () => {
 
   const promptAsync = useCallback(async (): Promise<NativeGoogleAuthResult> => {
     if (Platform.OS === 'web') {
-      // Use Firebase signInWithPopup — this redirects through
-      // https://eduassist-prod.firebaseapp.com/__/auth/handler
-      // which is already registered in Google Cloud Console.
       try {
         const firebaseResult = await signInWithPopup(auth, googleProvider);
 
-        // Extract the Google ID token from the credential — NOT the Firebase
-        // ID token.  The backend validates via Google's tokeninfo endpoint,
-        // which only accepts Google-issued tokens.
         const credential = GoogleAuthProvider.credentialFromResult(firebaseResult);
         const idToken = credential?.idToken;
 
@@ -78,8 +69,16 @@ export const useGoogleAuth = () => {
       }
     }
 
-    // Android: use @react-native-google-signin
+    // Android/iOS: use @react-native-google-signin
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    
+    // Force account chooser by signing out previous cached sessions
+    try {
+      await GoogleSignin.signOut();
+    } catch (e) {
+      // Ignore if not signed in
+    }
+
     const result = await GoogleSignin.signIn();
 
     if (!isSuccessResponse(result)) {
@@ -102,14 +101,8 @@ export const useGoogleAuth = () => {
   }, []);
 
   return {
-    // `request` is used in LoginScreen to disable the button until ready.
-    // On web it's always ready (Firebase popup needs no pre-loaded request).
     request: Platform.OS === 'web' ? (webReady ? {} : null) : {},
-    // `response` was used by expo-auth-session's hook-driven flow.
-    // With signInWithPopup the result is returned directly from promptAsync,
-    // so this is always null.
     response: null,
     promptAsync,
   };
 };
-

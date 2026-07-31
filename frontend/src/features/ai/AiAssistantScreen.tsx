@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,22 +13,49 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { useLocalSearchParams, router } from 'expo-router';
+import Markdown from 'react-native-markdown-display';
 
 import { AiService } from '../../services/AiService';
 import { useAuth } from '../../hooks/useAuth';
+import { API_CONFIG } from '../../config/api.config';
 import { spacing } from '../../theme/spacing';
-import type { AiAgentOption, AiChatMessage } from '../../types/ai.types';
+import { colors } from '../../theme/colors';
+import type { AiAgentOption, AiChatMessage, AiConversation } from '../../types/ai.types';
+import { ChatSidebar } from './ChatSidebar';
 
+// ─── Design Tokens (Updated to match app theme) ─────────────
 const GOLD = '#D4AF37';
+const GOLD_DIM = 'rgba(212,175,55,0.15)';
 const BLACK = '#000000';
-const FIELD = '#242424';
-const FIELD_BORDER = '#333333';
-const MUTED = '#A9A9A9';
+const DARK = '#0A0A0A';
+const FIELD = '#1A1A1A';
+const FIELD_BORDER = '#2A2A2A';
+const MUTED = '#8A8A8A';
 const WHITE = '#FFFFFF';
-const USER_BUBBLE = '#1A1A1A';
+const ERROR_RED = colors.error;
 
+// ─── Quick Suggestion Chips ──────────────────────────────────
+const DASHBOARD_SUGGESTIONS = [
+  { icon: '💡', label: 'Idée de cours', prompt: 'Propose-moi une idée de cours interactive.', type: 'chat' },
+  { icon: '📅', label: 'Organisation', prompt: 'Aide-moi à structurer mon programme de la semaine.', type: 'chat' },
+  { icon: '🗣️', label: 'Pédagogie', prompt: 'Donne-moi des astuces pour capter l\'attention de mes élèves.', type: 'chat' },
+] as const;
+
+const LESSON_SUGGESTIONS = [
+  { icon: '📝', label: 'Fiche de cours', prompt: 'Prépare-moi une fiche de cours complète sur le sujet de mon choix.', type: 'lesson_plan' },
+  { icon: '✏️', label: 'Exercices', prompt: 'Crée une série d\'exercices progressifs avec corrigés pour ma classe.', type: 'exercise' },
+  { icon: '❓', label: 'Quiz', prompt: 'Génère un quiz d\'évaluation rapide de 20 questions avec corrigé.', type: 'quiz' },
+  { icon: '📋', label: 'Résumé', prompt: 'Rédige un résumé de leçon structuré avec les points clés.', type: 'summary' },
+  { icon: '✅', label: 'Corrigé type', prompt: 'Produis un corrigé type détaillé avec barème de notation.', type: 'correction' },
+] as const;
+
+// ─── Types ───────────────────────────────────────────────────
 interface ChatBubble {
   id: string;
   role: 'user' | 'model';
@@ -35,27 +63,56 @@ interface ChatBubble {
   isError?: boolean;
 }
 
-import { useLocalSearchParams } from 'expo-router';
+interface AttachedFile {
+  uri: string;
+  name: string;
+  type: string;
+  base64: string;
+}
 
-export const AiAssistantScreen = React.memo(() => {
+interface AiAssistantProps {
+  mode?: 'dashboard' | 'lesson';
+  class_id?: string;
+  course_id?: string;
+  chapterId?: string;
+  lessonId?: string;
+  onInsertContent?: (content: string) => void;
+  onClose?: () => void;
+}
+
+export const AiAssistantScreen = React.memo(({ 
+  mode = 'dashboard', 
+  class_id, 
+  course_id, 
+  chapterId, 
+  lessonId,
+  onInsertContent,
+  onClose
+}: AiAssistantProps) => {
   const { state } = useAuth();
-  const { class_id, course_id } = useLocalSearchParams<{ class_id: string; course_id: string }>();
-  const [messages, setMessages] = useState<ChatBubble[]>([
-    {
-      id: 'welcome',
-      role: 'model',
-      text: `Bonjour ${state.user?.name || ''} ! Je suis EduAssist, votre assistant pédagogique IA.\n\nQue souhaitez-vous préparer aujourd'hui ?`,
-    },
-  ]);
+  
+  const [messages, setMessages] = useState<ChatBubble[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [agents, setAgents] = useState<AiAgentOption[]>([]);
   const [agent, setAgent] = useState<string>('');
   const [planLabel, setPlanLabel] = useState<string>('');
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  // Sidebar & History State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [conversations, setConversations] = useState<AiConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Initialize Agents and Conversations
   useEffect(() => {
     let active = true;
+    
+    // Fetch Agents
     AiService.getAgents()
       .then((res) => {
         if (!active || !res.success || !res.data) return;
@@ -63,30 +120,249 @@ export const AiAssistantScreen = React.memo(() => {
         setPlanLabel(res.data.plan_label);
         setAgent(res.data.default_agent);
       })
-      .catch(() => { });
+      .catch(() => {});
+
+    // Fetch Conversations
+    loadConversations();
+
     return () => {
       active = false;
     };
   }, []);
 
-  const handleSend = useCallback(async () => {
-    const text = inputText.trim();
+  const loadConversations = async () => {
+    try {
+      const res = await AiService.getConversations(course_id as string, chapterId as string, lessonId as string);
+      if (res.success) {
+        setConversations(res.data);
+        if (res.data.length > 0 && !activeConversationId) {
+          loadConversationDetails(res.data[0].id);
+        }
+      }
+    } catch (e) {
+      console.log('Failed to load conversations', e);
+    }
+  };
+
+  // Set default welcome message if no active conversation
+  useEffect(() => {
+    if (!activeConversationId) {
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'model',
+          text: `Que voulez-vous savoir ?`,
+        },
+      ]);
+      setShowSuggestions(false);
+    }
+  }, [activeConversationId, state.user?.name]);
+
+  // Load a specific conversation
+  const loadConversationDetails = async (id: number) => {
+    setIsLoading(true);
+    setActiveConversationId(id);
+    setIsSidebarOpen(false);
+    setShowSuggestions(false);
+    
+    try {
+      const res = await AiService.getConversation(id);
+      if (res.success && res.data) {
+        const loadedMessages: ChatBubble[] = res.data.messages.map((m: any) => ({
+          id: m.id.toString(),
+          role: m.role,
+          text: m.content,
+        }));
+        setMessages(loadedMessages);
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de charger cette conversation.');
+      startNewConversation();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startNewConversation = () => {
+    setActiveConversationId(null);
+    setIsSidebarOpen(false);
+    setInputText('');
+    setAttachedFile(null);
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'model',
+        text: `Que voulez-vous savoir ?`,
+      },
+    ]);
+    setShowSuggestions(false);
+  };
+
+  const handleDeleteConversation = async (id: number) => {
+    Alert.alert('Supprimer', 'Voulez-vous supprimer cette conversation ?', [
+      { text: 'Annuler', style: 'cancel' },
+      { 
+        text: 'Supprimer', 
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await AiService.deleteConversation(id);
+            setConversations(prev => prev.filter(c => c.id !== id));
+            if (activeConversationId === id) {
+              startNewConversation();
+            }
+          } catch (e) {
+            Alert.alert('Erreur', 'Impossible de supprimer.');
+          }
+        }
+      }
+    ]);
+  };
+
+  // ─── Pick Image / File ───────────────────────────────────
+  const handlePickFile = useCallback(() => {
+    Alert.alert('Joindre', 'Que souhaitez-vous ajouter ?', [
+      { text: 'Image (Galerie)', onPress: pickImage },
+      { text: 'Document (PDF, Word, TXT)', onPress: pickDocument },
+      { text: 'Annuler', style: 'cancel' }
+    ]);
+  }, []);
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie pour joindre une image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.7,
+        base64: true,
+        allowsEditing: false,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert('Erreur', 'Impossible de lire l\'image.');
+        return;
+      }
+
+      const fileName = asset.fileName || `image_${Date.now()}.jpg`;
+      const mimeType = asset.mimeType || 'image/jpeg';
+
+      setAttachedFile({
+        uri: asset.uri,
+        name: fileName,
+        type: mimeType,
+        base64: asset.base64,
+      });
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de sélectionner l\'image.');
+    }
+  };
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf', 
+          'application/msword', 
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+          'text/plain'
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      
+      setIsLoading(true);
+      const res = await AiService.parseDocument(
+        asset.uri, 
+        asset.name, 
+        asset.mimeType || 'application/pdf'
+      );
+      
+      if (res.success && res.data) {
+        const textContent = res.data.text;
+        setInputText(prev => prev + `\n\n[Contenu du document ${asset.name}]:\n${textContent}\n`);
+        Alert.alert('Succès', 'Document analysé et ajouté au message !');
+      } else {
+        Alert.alert('Erreur', res.message || 'Impossible de lire le document.');
+      }
+    } catch (e: any) {
+      Alert.alert('Erreur', 'Impossible de traiter ce fichier : ' + e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveFile = useCallback(() => {
+    setAttachedFile(null);
+  }, []);
+
+  // ─── Export File ─────────────────────────────────────────
+  const handleDownload = async (chatText: string, format: 'pdf' | 'word', messageId: string) => {
+    try {
+      setIsExporting(messageId);
+      // Try to determine a smart title based on active conversation
+      let title = "Document";
+      if (activeConversationId) {
+        const activeConv = conversations.find(c => c.id === activeConversationId);
+        if (activeConv && activeConv.title && activeConv.title !== 'Nouvelle conversation') {
+          title = activeConv.title;
+        }
+      }
+      
+      // 1. Appel API Laravel
+      const res = await AiService.exportChat(chatText, format, title);
+      
+      if (!res.success || !res.data?.download_url) {
+        throw new Error('Erreur serveur lors de la génération.');
+      }
+      
+      // 2. Télécharger le fichier généré
+      const extension = format === 'pdf' ? 'pdf' : 'docx';
+      const fileUri = FileSystem.documentDirectory + `eduassist_export_${Date.now()}.${extension}`;
+      const downloadResult = await FileSystem.downloadAsync(res.data.download_url, fileUri);
+      
+      // 3. Ouvrir le menu de partage
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(downloadResult.uri);
+      } else {
+        Alert.alert('Succès', 'Le fichier a été téléchargé, mais le partage n\'est pas disponible sur cet appareil.');
+      }
+    } catch (error: any) {
+      Alert.alert('Erreur', "Impossible d'exporter le fichier. Détail : " + (error.message || JSON.stringify(error)));
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  // ─── Send Message ────────────────────────────────────────
+  const handleSend = useCallback(async (overrideText?: string, explicitType?: string) => {
+    const text = (overrideText || inputText).trim();
     if (!text || isLoading) return;
 
     const userMessage: ChatBubble = {
       id: Date.now().toString(),
       role: 'user',
-      text,
+      text: attachedFile ? `${text}\n📎 ${attachedFile.name}` : text,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
+    setShowSuggestions(false);
 
-    // Construction de l'historique pour l'API
+    // Historique pour l'API (on exclut les messages d'erreur et le welcome local)
     const history: AiChatMessage[] = messages
-      .filter((m) => m.id !== 'welcome' && !m.isError)
-      .map((m) => ({
+      .filter((m: any) => m.id !== 'welcome' && !m.isError)
+      .map((m: any) => ({
         role: m.role,
         parts: [{ text: m.text }],
       }));
@@ -94,11 +370,21 @@ export const AiAssistantScreen = React.memo(() => {
     try {
       const response = await AiService.generateContent({
         message: text,
+        type: explicitType,
+        mode: mode,
         history: history.length > 0 ? history : undefined,
         agent: agent || undefined,
         class_id: class_id ? parseInt(class_id, 10) : undefined,
         course_id: course_id ? parseInt(course_id, 10) : undefined,
+        chapter_id: chapterId ? parseInt(chapterId, 10) : undefined,
+        lesson_id: lessonId ? parseInt(lessonId, 10) : undefined,
+        file_data: attachedFile?.base64,
+        file_name: attachedFile?.name,
+        file_type: attachedFile?.type,
+        conversation_id: activeConversationId || undefined,
       });
+
+      setAttachedFile(null);
 
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Impossible de générer une réponse.');
@@ -111,6 +397,12 @@ export const AiAssistantScreen = React.memo(() => {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
+      // Update conversation state if it was newly created
+      if (response.data.conversation_id && !activeConversationId) {
+        setActiveConversationId(response.data.conversation_id);
+        loadConversations(); // refresh sidebar list
+      }
     } catch (error) {
       const errorMessage: ChatBubble = {
         id: (Date.now() + 1).toString(),
@@ -122,41 +414,164 @@ export const AiAssistantScreen = React.memo(() => {
     } finally {
       setIsLoading(false);
     }
-  }, [agent, inputText, isLoading, messages]);
+  }, [agent, attachedFile, class_id, course_id, inputText, isLoading, messages, activeConversationId]);
 
+  // ─── Suggestion Tap ──────────────────────────────────────
+  const handleSuggestionTap = useCallback((prompt: string, type: string) => {
+    handleSend(prompt, type);
+  }, [handleSend]);
+
+  // ─── Render Bubble ───────────────────────────────────────
   const renderBubble = (msg: ChatBubble) => {
     const isUser = msg.role === 'user';
+    const isWelcome = msg.id === 'welcome';
+    const isQuotaError = !isUser && msg.text.startsWith('[ERROR_QUOTA]');
+    const displayText = isQuotaError ? msg.text.replace('[ERROR_QUOTA]', '').trim() : msg.text;
+    
     return (
       <View key={msg.id} style={[styles.bubbleWrapper, isUser ? styles.bubbleUserWrapper : styles.bubbleModelWrapper]}>
         {!isUser && (
           <View style={styles.aiAvatar}>
-            <MaterialCommunityIcons name="robot-outline" size={16} color={BLACK} />
+            <MaterialCommunityIcons name="book-open-variant" size={14} color={BLACK} />
           </View>
         )}
-        <View
-          style={[
-            styles.bubble,
-            isUser ? styles.bubbleUser : styles.bubbleModel,
-            msg.isError && styles.bubbleError,
-          ]}
-        >
-          <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextModel]}>
-            {msg.text}
-          </Text>
+        <View style={styles.bubbleContentWrapper}>
+          {isQuotaError ? (
+            <View style={styles.quotaCard}>
+              <View style={styles.quotaHeader}>
+                <Ionicons name="warning" size={20} color={GOLD} />
+                <Text style={styles.quotaTitle}>Quota Atteint</Text>
+              </View>
+              <Text style={styles.quotaText}>{displayText}</Text>
+              <View style={styles.quotaActions}>
+                <TouchableOpacity style={styles.quotaBtnOutline} onPress={() => Alert.alert('Modèle', 'Veuillez changer le modèle depuis les paramètres.')}>
+                  <Ionicons name="swap-horizontal" size={16} color={GOLD} />
+                  <Text style={styles.quotaBtnOutlineText}>Changer de modèle</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quotaBtnSolid} onPress={() => Alert.alert('Premium', 'Les abonnements Premium seront bientôt disponibles !')}>
+                  <Ionicons name="star" size={16} color={BLACK} />
+                  <Text style={styles.quotaBtnSolidText}>Voir les offres</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.bubble,
+                isUser ? styles.bubbleUser : styles.bubbleModel,
+                msg.isError && styles.bubbleError,
+              ]}
+            >
+              {isUser ? (
+                <Text style={styles.bubbleTextUser}>
+                  {displayText}
+                </Text>
+              ) : (
+                <Markdown style={markdownStyles}>
+                  {displayText}
+                </Markdown>
+              )}
+            </View>
+          )}
+          
+          {/* Actions Bar for AI Model Responses (except welcome & errors) */}
+          {!isUser && !isWelcome && !msg.isError && !isQuotaError && (
+            <View style={styles.bubbleActions}>
+              <TouchableOpacity 
+                style={styles.actionBtn} 
+                onPress={() => {
+                  if (onInsertContent) {
+                    onInsertContent(msg.text);
+                  } else {
+                    import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+                      AsyncStorage.setItem('temp_ai_content', msg.text).then(() => {
+                        router.navigate({
+                          pathname: '/lesson/ai' as any,
+                          params: {
+                            courseId: course_id || '',
+                            targetChapterId: chapterId || '',
+                            targetLessonId: lessonId || ''
+                          }
+                        });
+                      });
+                    });
+                  }
+                }}
+              >
+                <Ionicons name="pencil-outline" size={14} color={MUTED} />
+                <Text style={styles.actionText}>Éditer</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.actionBtn} 
+                onPress={() => handleDownload(msg.text, 'pdf', msg.id)}
+                disabled={isExporting === msg.id}
+              >
+                {isExporting === msg.id ? (
+                  <ActivityIndicator size="small" color={GOLD} style={styles.actionLoader} />
+                ) : (
+                  <MaterialCommunityIcons name="file-pdf-box" size={16} color="#ef4444" />
+                )}
+                <Text style={styles.actionText}>PDF</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.actionBtn} 
+                onPress={() => handleDownload(msg.text, 'word', msg.id)}
+                disabled={isExporting === msg.id}
+              >
+                {isExporting === msg.id ? (
+                  <ActivityIndicator size="small" color={GOLD} style={styles.actionLoader} />
+                ) : (
+                  <MaterialCommunityIcons name="file-word-box" size={16} color="#3b82f6" />
+                )}
+                <Text style={styles.actionText}>Word</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     );
   };
 
+  // ─── Render ──────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
+      <ChatSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)}
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onSelectConversation={loadConversationDetails}
+        onNewConversation={startNewConversation}
+        onDeleteConversation={handleDeleteConversation}
+      />
+
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
-          <MaterialCommunityIcons name="robot-excited-outline" size={28} color={GOLD} />
-          <Text style={styles.brand}>EduAssist Chat</Text>
+          {mode === 'dashboard' ? (
+            <TouchableOpacity onPress={() => setIsSidebarOpen(true)} style={styles.menuBtn}>
+              <Ionicons name="menu" size={24} color={WHITE} />
+            </TouchableOpacity>
+          ) : onClose ? (
+            <TouchableOpacity onPress={onClose} style={styles.menuBtn}>
+              <Ionicons name="close" size={24} color={WHITE} />
+            </TouchableOpacity>
+          ) : null}
+          <View style={styles.headerIcon}>
+            <MaterialCommunityIcons name="book-open-variant" size={20} color={BLACK} />
+          </View>
+          <View>
+            <Text style={styles.brand}>EduAssist</Text>
+            <Text style={styles.brandSub}>
+              {mode === 'lesson' ? 'Générateur de Leçon' : 'Assistant Pédagogique'}
+            </Text>
+          </View>
         </View>
-        <View style={styles.agentSelector}>
-          <Text style={styles.agentPlan}>{planLabel || 'Agent IA'}</Text>
+        <View style={styles.agentBadge}>
+          <View style={styles.agentDot} />
+          <Text style={styles.agentPlan}>{planLabel || 'Assistant'}</Text>
         </View>
       </View>
 
@@ -171,15 +586,66 @@ export const AiAssistantScreen = React.memo(() => {
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >
           {messages.map(renderBubble)}
+
+          {/* Suggestions chips — shown after welcome message */}
+          {showSuggestions && messages.length === 1 && !activeConversationId && (
+            <View style={styles.suggestionsContainer}>
+              <Text style={styles.suggestionsTitle}>Suggestions rapides</Text>
+              <View style={styles.suggestionsGrid}>
+                {(mode === 'lesson' ? LESSON_SUGGESTIONS : DASHBOARD_SUGGESTIONS).map((s) => (
+                  <TouchableOpacity
+                    key={s.label}
+                    style={styles.suggestionChip}
+                    onPress={() => handleSuggestionTap(s.prompt, s.type)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.suggestionIcon}>{s.icon}</Text>
+                    <Text style={styles.suggestionLabel}>{s.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Loading indicator */}
           {isLoading && (
             <View style={styles.loadingBubble}>
-              <ActivityIndicator color={GOLD} size="small" />
-              <Text style={styles.loadingText}>L'IA réfléchit...</Text>
+              <View style={styles.aiAvatar}>
+                <MaterialCommunityIcons name="book-open-variant" size={14} color={BLACK} />
+              </View>
+              <View style={styles.loadingContent}>
+                <ActivityIndicator color={GOLD} size="small" />
+                <Text style={styles.loadingText}>Génération en cours...</Text>
+              </View>
             </View>
           )}
         </ScrollView>
 
+        {/* Attached file preview */}
+        {attachedFile && (
+          <View style={styles.filePreview}>
+            <Image source={{ uri: attachedFile.uri }} style={styles.fileThumb} />
+            <View style={styles.fileInfo}>
+              <Text style={styles.fileName} numberOfLines={1}>{attachedFile.name}</Text>
+              <Text style={styles.fileType}>{attachedFile.type}</Text>
+            </View>
+            <TouchableOpacity onPress={handleRemoveFile} style={styles.fileRemove}>
+              {/* Changed from close-circle in red to a softer trash icon */}
+              <Ionicons name="trash-outline" size={20} color={MUTED} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Input bar */}
         <View style={styles.inputContainer}>
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={handlePickFile}
+            disabled={isLoading}
+          >
+            <Ionicons name="attach" size={22} color={attachedFile ? GOLD : MUTED} />
+          </TouchableOpacity>
+
           <TextInput
             style={styles.textInput}
             placeholder="Demandez une leçon, un exercice..."
@@ -187,15 +653,16 @@ export const AiAssistantScreen = React.memo(() => {
             value={inputText}
             onChangeText={setInputText}
             multiline
-            maxLength={1000}
+            maxLength={2000}
             editable={!isLoading}
           />
+
           <TouchableOpacity
             style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
-            onPress={handleSend}
+            onPress={() => handleSend()}
             disabled={!inputText.trim() || isLoading}
           >
-            <Ionicons name="send" size={20} color={BLACK} />
+            <Ionicons name="send" size={18} color={BLACK} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -205,45 +672,149 @@ export const AiAssistantScreen = React.memo(() => {
 
 AiAssistantScreen.displayName = 'AiAssistantScreen';
 
+// ─── Styles ──────────────────────────────────────────────────
+const markdownStyles = StyleSheet.create({
+  body: {
+    color: WHITE,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  heading1: {
+    color: GOLD,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  heading2: {
+    color: GOLD,
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  heading3: {
+    color: WHITE,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  paragraph: {
+    marginBottom: 10,
+  },
+  list_item: {
+    marginBottom: 5,
+  },
+  bullet_list: {
+    marginBottom: 15,
+  },
+  strong: {
+    color: WHITE,
+    fontWeight: 'bold',
+  },
+  em: {
+    fontStyle: 'italic',
+    color: MUTED,
+  },
+  code_inline: {
+    backgroundColor: '#2A2A2A',
+    color: GOLD,
+    padding: 3,
+    borderRadius: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  code_block: {
+    backgroundColor: '#F3F4F6',
+    color: WHITE,
+    padding: 10,
+    borderRadius: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginBottom: 15,
+  },
+  blockquote: {
+    borderLeftWidth: 3,
+    borderLeftColor: GOLD,
+    paddingLeft: 10,
+    backgroundColor: 'rgba(212,175,55,0.05)',
+    marginBottom: 15,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: DARK,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: FIELD_BORDER,
+    backgroundColor: BLACK,
+    zIndex: 5,
+  },
+  menuBtn: {
+    padding: 4,
+    marginRight: 4,
   },
   brandRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  brand: {
-    color: GOLD,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  agentSelector: {
-    flexDirection: 'row',
+  headerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: GOLD,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  agentPlan: {
-    backgroundColor: FIELD,
-    borderColor: GOLD,
-    borderRadius: 12,
-    borderWidth: 1,
-    color: GOLD,
-    fontSize: 12,
+  brand: {
+    color: WHITE,
+    fontSize: 16,
     fontWeight: '700',
+  },
+  brandSub: {
+    color: MUTED,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  agentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: GOLD_DIM,
+    borderRadius: 12,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
+    gap: 6,
   },
+  agentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4ADE80',
+  },
+  agentPlan: {
+    color: GOLD,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // Chat
   keyboardView: {
     flex: 1,
   },
@@ -252,34 +823,41 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
   },
+
+  // Bubbles
   bubbleWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     maxWidth: '85%',
   },
   bubbleUserWrapper: {
     alignSelf: 'flex-end',
+    maxWidth: '85%',
   },
   bubbleModelWrapper: {
     alignSelf: 'flex-start',
     gap: spacing.sm,
   },
+  bubbleContentWrapper: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
   aiAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: GOLD,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginTop: 2,
   },
   bubble: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: 18,
   },
   bubbleUser: {
-    backgroundColor: USER_BUBBLE,
+    backgroundColor: GOLD,
     borderBottomRightRadius: 4,
     borderWidth: 1,
     borderColor: FIELD_BORDER,
@@ -288,65 +866,252 @@ const styles = StyleSheet.create({
     backgroundColor: FIELD,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: GOLD,
+    borderColor: GOLD_DIM,
   },
   bubbleError: {
-    borderColor: '#ff4444',
+    borderColor: ERROR_RED,
   },
   bubbleText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 21,
   },
   bubbleTextUser: {
     color: WHITE,
   },
   bubbleTextModel: {
-    color: '#EFEFEF',
+    color: WHITE,
   },
+  bubbleActions: {
+    flexDirection: 'row',
+    marginTop: 4,
+    marginLeft: 4,
+    gap: spacing.md,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: FIELD,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: FIELD_BORDER,
+    gap: 4,
+  },
+  actionText: {
+    color: MUTED,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  actionLoader: {
+    width: 14,
+    height: 14,
+  },
+
+  // Suggestions
+  suggestionsContainer: {
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  suggestionsTitle: {
+    color: MUTED,
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 34,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  suggestionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginLeft: 34,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: FIELD,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: FIELD_BORDER,
+    gap: 6,
+  },
+  suggestionIcon: {
+    fontSize: 14,
+  },
+  suggestionLabel: {
+    color: WHITE,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  // Loading
   loadingBubble: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  loadingContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    alignSelf: 'flex-start',
-    padding: spacing.md,
+    backgroundColor: FIELD,
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderWidth: 1,
+    borderColor: GOLD_DIM,
   },
   loadingText: {
     color: MUTED,
     fontSize: 13,
+    fontStyle: 'italic',
   },
+
+  // File preview
+  filePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: FIELD,
+    marginHorizontal: spacing.md,
+    marginBottom: 4,
+    borderRadius: 12,
+    padding: spacing.sm,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: GOLD_DIM,
+  },
+  fileThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: FIELD_BORDER,
+  },
+  fileInfo: {
+    flex: 1,
+  },
+  fileName: {
+    color: WHITE,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  fileType: {
+    color: MUTED,
+    fontSize: 11,
+  },
+  fileRemove: {
+    padding: 8,
+  },
+
+  // Input bar
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: FIELD_BORDER,
     backgroundColor: BLACK,
-    gap: spacing.sm,
+    gap: 6,
+  },
+  attachButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textInput: {
     flex: 1,
     backgroundColor: FIELD,
     color: WHITE,
-    borderRadius: 24,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 14,
-    paddingBottom: 14,
-    fontSize: 16,
+    borderRadius: 22,
+    paddingHorizontal: spacing.md,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 15,
     maxHeight: 120,
-    minHeight: 48,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: FIELD_BORDER,
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: GOLD,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
+  },
+  quotaCard: {
+    backgroundColor: FIELD,
+    borderRadius: 16,
+    padding: spacing.xl,
+    marginVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: FIELD_BORDER,
+    alignItems: 'center',
+  },
+  quotaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  quotaTitle: {
+    color: GOLD,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  quotaText: {
+    color: MUTED,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    lineHeight: 20,
+  },
+  quotaActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    width: '100%',
+  },
+  quotaBtnOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GOLD,
+    gap: spacing.sm,
+  },
+  quotaBtnOutlineText: {
+    color: GOLD,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  quotaBtnSolid: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    borderRadius: 12,
+    backgroundColor: GOLD,
+    gap: spacing.sm,
+  },
+  quotaBtnSolidText: {
+    color: BLACK,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

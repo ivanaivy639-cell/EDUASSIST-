@@ -3,7 +3,7 @@ import { isAxiosError } from 'axios';
 import { AuthService } from '../services/AuthService';
 import { SecureStorage } from '../utils/secureStorage';
 import { ErrorHandler } from '../utils/errorHandler';
-import type { AuthState, AuthStatus, RegisterTeacherData, TeacherProfile, User } from '../types/auth.types';
+import type { AuthState, AuthStatus, RegisterTeacherData, TeacherProfile, User, UpdateTeacherData } from '../types/auth.types';
 
 interface AuthContextType {
   state: AuthState;

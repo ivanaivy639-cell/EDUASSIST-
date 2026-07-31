@@ -49,10 +49,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ai"
+        name="assistant"
         options={{
-          title: 'IA',
+          title: 'Assistant',
           tabBarIcon: ({ color, size }) => <Ionicons size={size} name="sparkles-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="exams"
+        options={{
+          title: 'Évaluations',
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="school-outline" color={color} />,
         }}
       />
       <Tabs.Screen

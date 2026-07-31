@@ -42,9 +42,17 @@ export class ErrorHandler {
             technicalMessage: 'Conflict: teacher already exists',
           };
         case 422:
+          // Extraire les messages d'erreur spécifiques de Laravel
+          let errorMessage = 'Veuillez verifier les informations saisies.';
+          if (data?.errors) {
+            const firstErrorKey = Object.keys(data.errors)[0];
+            if (firstErrorKey && data.errors[firstErrorKey][0]) {
+              errorMessage = data.errors[firstErrorKey][0];
+            }
+          }
           return {
             category: 'validation',
-            message: 'Veuillez verifier les informations saisies.',
+            message: errorMessage,
             technicalMessage: JSON.stringify(data?.errors),
           };
         case 500:

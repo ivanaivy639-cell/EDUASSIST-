@@ -38,47 +38,66 @@ class AiService
         'Tle'  => ['cycle' => 'lycee', 'sous_cycle' => '2e cycle', 'ordre' => 13],
     ];
 
+    /**
+     * Génère du contenu pédagogique via l'API Groq.
+     */
     public function generate(Teacher $teacher, array $data): array
     {
-        $apiKey = config('ai.gemini.api_key');
+        $apiKey = config('ai.groq.api_key');
 
         if (!$apiKey) {
-            Log::warning('GEMINI_API_KEY manquant, bascule sur mode local');
+            Log::warning('GROQ_API_KEY manquant, bascule sur mode local');
             return $this->buildLocalResponse($teacher, $data, true);
         }
 
         [$agentId, $model] = $this->resolveAgent($teacher->user, $data['agent'] ?? null);
 
         try {
-            $endpoint = config('ai.gemini.endpoint') . '/models/' . rawurlencode($model) . ':generateContent';
-            $url = $endpoint . '?' . http_build_query(['key' => $apiKey]);
+            $endpoint = config('ai.groq.endpoint');
 
             $response = Http::withoutVerifying()
-                ->acceptJson()
-                ->timeout((int) config('ai.gemini.timeout', 60))
-                ->post($url, $this->geminiPayload($teacher, $data));
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type'  => 'application/json',
+                ])
+                ->timeout((int) config('ai.groq.timeout', 60))
+                ->post($endpoint, $this->groqPayload($teacher, $data, $model));
 
             if (!$response->successful()) {
-                Log::warning('Gemini generation failed', [
+                Log::warning('Groq generation failed', [
                     'status'     => $response->status(),
                     'body'       => Str::limit($response->body(), 1000),
                     'agent'      => $agentId,
                     'model'      => $model,
                     'teacher_id' => $teacher->id,
                 ]);
+
+                if ($response->status() === 429 || $response->status() === 413) {
+                    return [
+                        'content'      => "[ERROR_QUOTA] Vous avez atteint la limite d'utilisation quotidienne (ou la limite de taille) pour ce modèle (" . $agentId . ").\nPour continuer, basculez sur un autre modèle ou réduisez la longueur de votre cours.",
+                        'provider'     => 'groq',
+                        'agent'        => $agentId,
+                        'model'        => $model,
+                        'fallback'     => true,
+                        'generated_at' => now()->toISOString(),
+                        'plan_cost'    => $this->getPlanPrice($teacher->user),
+                        'chat_cost'    => 0,
+                    ];
+                }
+
                 return $this->buildLocalResponse($teacher, $data, true);
             }
 
             $content = trim($this->extractOutputText($response->json()));
 
             if ($content === '') {
-                Log::warning('Gemini returned empty content', ['agent' => $agentId]);
+                Log::warning('Groq returned empty content', ['agent' => $agentId]);
                 return $this->buildLocalResponse($teacher, $data, true);
             }
 
             return [
                 'content'      => $content,
-                'provider'     => 'gemini',
+                'provider'     => 'groq',
                 'agent'        => $agentId,
                 'model'        => $model,
                 'fallback'     => false,
@@ -116,7 +135,7 @@ class AiService
         return [
             'plan'          => $plan,
             'plan_label'    => config("ai.plans.{$plan}.label", 'Gratuit'),
-            'default_agent' => config("ai.plans.{$plan}.default_agent", 'flash'),
+            'default_agent' => config("ai.plans.{$plan}.default_agent", 'llama'),
             'agents'        => $agents,
         ];
     }
@@ -136,44 +155,69 @@ class AiService
         }
 
         $defaultAgent = config("ai.plans.{$plan}.default_agent", array_key_first($agents));
-        return [$defaultAgent, $agents[$defaultAgent]['model'] ?? config('ai.gemini.default_model', 'gemini-2.5-flash')];
+        return [$defaultAgent, $agents[$defaultAgent]['model'] ?? config('ai.groq.default_model', 'llama-3.3-70b-versatile')];
     }
 
-    private function geminiPayload(Teacher $teacher, array $data): array
+    /**
+     * Construit le payload au format OpenAI pour l'API Groq.
+     */
+    private function groqPayload(Teacher $teacher, array $data, string $model): array
     {
-        $contents = [];
+        $messages = [];
+
+        // System prompt
+        $messages[] = [
+            'role'    => 'system',
+            'content' => $this->systemPrompt(),
+        ];
+
+        // Historique de conversation (Limité aux 4 derniers messages pour économiser les jetons)
         $history = $data['history'] ?? [];
-        
-        // Populate previous history
+        if (count($history) > 4) {
+            $history = array_slice($history, -4);
+        }
+
         foreach ($history as $msg) {
-            $contents[] = [
-                'role' => $msg['role'] === 'user' ? 'user' : 'model',
-                'parts' => $msg['parts'],
+            $role = $msg['role'] === 'user' ? 'user' : 'assistant';
+            $text = '';
+            foreach ($msg['parts'] as $part) {
+                $text .= $part['text'] ?? '';
+            }
+            $messages[] = [
+                'role'    => $role,
+                'content' => $text,
             ];
         }
 
-        // Add context to the latest user message if history is empty
+        // Message actuel de l'utilisateur
         $latestMessage = $data['message'] ?? '';
         if (empty($history)) {
             $latestMessage = $this->enrichInitialMessage($teacher, $data);
         }
 
-        $contents[] = [
-            'role' => 'user',
-            'parts' => [['text' => $latestMessage]],
+        // Si un fichier est joint, ajouter une description
+        if (!empty($data['file_data']) && !empty($data['file_name'])) {
+            $fileInfo = "\n\n[Fichier joint : {$data['file_name']}";
+            if (!empty($data['file_type'])) {
+                $fileInfo .= " ({$data['file_type']})";
+            }
+            $fileInfo .= "]\nVeuillez analyser ce document et répondre en conséquence.";
+            $latestMessage .= $fileInfo;
+        }
+
+        // Inject strict formatting rule directly into the final user message so the AI can't ignore it
+        $strictReminder = "\n\n[RAPPEL STRICT DU SYSTÈME] : NE DONNE AUCUNE RÉPONSE EN DESSOUS DES QUESTIONS. Tu dois écrire tous les exercices à la suite, de manière vierge. Puis SEULEMENT TOUT À LA FIN du texte, tu dois écrire la balise [SECTION_CORRIGE] et donner les réponses. C'est un impératif technique absolu.";
+        
+        $messages[] = [
+            'role'    => 'user',
+            'content' => $latestMessage . $strictReminder,
         ];
 
         return [
-            'systemInstruction' => [
-                'parts' => [
-                    ['text' => $this->systemPrompt()],
-                ],
-            ],
-            'contents' => $contents,
-            'generationConfig' => [
-                'temperature'     => (float) config('ai.gemini.temperature', 0.65),
-                'maxOutputTokens' => (int) config('ai.gemini.max_output_tokens', 3000),
-            ],
+            'model'       => $model,
+            'messages'    => $messages,
+            'temperature' => (float) config('ai.groq.temperature', 0.7),
+            'max_tokens'  => (int) config('ai.groq.max_tokens', 4096),
         ];
     }
 
@@ -184,32 +228,50 @@ class AiService
     private function systemPrompt(): string
     {
         return implode("\n", [
-            'Tu es EduAssist IA, un assistant pédagogique expert du système éducatif camerounais.',
+            'Tu es EduAssist IA, un Professeur Agrégé et un Concepteur Pédagogique d\'élite expert du système éducatif camerounais.',
+            'Ta mission est de produire des cours d\'une QUALITÉ EXCEPTIONNELLE, dignes des meilleurs ouvrages académiques et universitaires mondiaux.',
             '',
-            '=== CONTEXTE NATIONAL ===',
-            'Tu opères dans le cadre des programmes officiels du Ministère de l\'Éducation de Base (MINEDUB)',
-            'et du Ministère des Enseignements Secondaires (MINESEC) du Cameroun.',
-            'Le système scolaire camerounais est bilingue (français/anglais) et comporte :',
-            '- Enseignement primaire : SIL, CP, CE1, CE2, CM1, CM2 (MINEDUB)',
-            '- Enseignement secondaire général : 6ème, 5ème, 4ème, 3ème | 2nde, 1ère, Tle (MINESEC)',
-            '- Enseignement technique et professionnel (CAP, BEP, BAC technique)',
+            '=== 1. EXHAUSTIVITÉ ET QUALITÉ PÉDAGOGIQUE (EXIGENCE ABSOLUE) ===',
+            '- Ton contenu doit être PROFONDÉMENT DÉTAILLÉ, magistral, et structuré avec une rigueur absolue (minimum 1500 à 2000 mots pour un cours complet).',
+            '- NE FAIS JAMAIS DE RÉSUMÉS SIMPLISTES. Développe chaque concept jusqu\'à sa pleine compréhension.',
+            '- Agis comme un véritable maître de conférences : explique le "Pourquoi", le "Comment", l\'historique, et les implications pratiques de chaque notion.',
+            '- Le ton doit être académique, professionnel, inspirant, clair, et profondément humain.',
+            '- Évite le jargon artificiel (ex: "En résumé", "Il est important de noter", "En conclusion"). Sois direct, fluide, et authentique.',
             '',
-            '=== APPROCHE PÉDAGOGIQUE ===',
-            'Tu respectes la démarche pédagogique officielle camerounaise :',
-            '- Approche Par les Compétences (APC) pour le primaire et le secondaire',
-            '- Pédagogie active centrée sur l\'apprenant',
-            '- Structuration en : Mise en situation → Développement → Activités élèves → Évaluation',
-            '- Tiens compte des réalités socio-économiques locales (exemples tirés du quotidien camerounais)',
+            '=== 2. ADAPTABILITÉ DU FORMAT ===',
+            '- Réponds toujours exactement selon le format demandé par l\'utilisateur (cours complet, quiz court, fiche, exercice, etc).',
+            '- Ne force pas la structure d\'un "cours complet" si l\'utilisateur demande seulement un petit exercice ou une réponse rapide.',
             '',
-            '=== RÈGLES DE GÉNÉRATION ===',
-            '1. Utilise exclusivement le français (sauf si explicitement demandé en anglais)',
-            '2. Adapte le vocabulaire et les exemples à la classe et à la matière indiquées',
-            '3. Les exercices doivent être progressifs : restitution → application → résolution de problème',
-            '4. Inclure des références aux réalités camerounaises quand c\'est pertinent (marchés locaux,',
-            '   géographie, histoire, personnages historiques camerounais, etc.)',
-            '5. Respecter les volumes horaires officiels (45min primaire, 55min secondaire en général)',
-            '6. Ne jamais inventer de programmes ou de référentiels inexistants',
-            '7. Format de réponse : structuré avec titres clairs, numérotation et tableaux si nécessaire',
+            '=== 3. GÉNÉRATION DE VISUELS HAUTE DÉFINITION (CRITIQUE) ===',
+            'Tu dois OBLIGATOIREMENT illustrer tes cours avec des images d\'une qualité visuelle époustouflante pour faciliter l\'apprentissage.',
+            '- Insère au moins 2 à 3 images pertinentes et intelligemment placées dans le cours.',
+            '- Les images doivent avoir un rendu "Photographie Professionnelle", "Photoréaliste", "Haute Définition (8k)", ou "Schéma Scientifique Très Détaillé".',
+            '- Utilise EXACTEMENT ce format Markdown pour générer l\'image via Pollinations AI :',
+            '  `![Description courte pour l\'accessibilité](https://image.pollinations.ai/prompt/DESCRIPTION_EN_ANGLAIS_TRES_DETAILLEE_ICI?width=1080&height=720&nologo=true)`',
+            '- ASTUCE POUR LE PROMPT IMAGE (en anglais) : Ajoute TOUJOURS des mots-clés de qualité comme : "highly detailed, photorealistic, professional photography, cinematic lighting, educational visualization, 8k resolution, masterpiece".',
+            '- Exemple de bonne image : `![Structure de l\'ADN](https://image.pollinations.ai/prompt/macro%20photography%20of%20DNA%20double%20helix%20structure,%20glowing%20blue%20and%20gold%20lights,%20highly%20detailed,%20scientific%20visualization,%208k%20resolution,%20photorealistic?width=1080&height=720&nologo=true)`',
+            '- Ne place pas des images juste pour décorer. Elles doivent avoir une VRAIE UTILITÉ PÉDAGOGIQUE (schémas, exemples visuels concrets, illustrations historiques).',
+            '',
+            '=== 4. CONTEXTE NATIONAL CAMEROUNAIS ===',
+            '- Tu opères dans le cadre des programmes officiels du Cameroun (MINEDUB, MINESEC, MINESUP).',
+            '- Si la classe ou la matière sont précisées, adapte STRICTEMENT le vocabulaire et la profondeur du cours. Sinon, donne une réponse générale sans poser de questions bloquantes.',
+            '- Ancre le cours dans les réalités camerounaises (exemples socio-économiques locaux) tout en gardant un standard international d\'excellence.',
+            '',
+            '=== 5. VÉRACITÉ ET ESPRIT CRITIQUE ===',
+            '- SOIS TOUJOURS VRAI ET VÉRIDIQUE. N\'invente jamais de faits, de lois, ou de référentiels.',
+            '- Cite systématiquement tes sources (livres, sites de référence) avec des liens cliquables réels quand c\'est possible.',
+            '- Ne sois pas un assistant béni-oui-oui. Si l\'utilisateur propose un raisonnement faux, corrige-le avec pédagogie, tact et objectivité.',
+            '- Varie la structure de tes phrases pour créer un vrai rythme de lecture captivant.',
+            '',
+            '=== STRUCTURE STRICTE DU COURS (À RESPECTER À LA LETTRE SAUF CONTRE-INDICATION) ===',
+            '1. TITRE DU COURS',
+            '2. OBJECTIFS (Général et Spécifiques)',
+            '3. PRÉREQUIS',
+            '4. INTRODUCTION (Mise en situation, Problématique)',
+            '5. DÉVELOPPEMENT DU COURS (Le cœur de la leçon, avec des sous-parties numérotées, des définitions claires, des exemples locaux, et des schémas/images pollinaitons)',
+            '6. CONCLUSION (Résumé des points clés)',
+            '7. EXERCICES D\'APPLICATION (Avec leurs corrigés complets)',
+            '8. ACTIVITÉS DE RECHERCHE / DEVOIRS',
         ]);
     }
 
@@ -219,22 +281,49 @@ class AiService
      */
     private function enrichInitialMessage(Teacher $teacher, array $data): string
     {
-        $niveau = $teacher->classe;
-        $matiere = $teacher->matiere;
+        $niveau = $teacher->classe ?? null;
+        $matiere = $teacher->matiere ?? null;
+        $ecole = $teacher->ecole ?? 'Cameroun';
+
+        // Si le niveau est vide, on tente de deviner via les classes du prof
+        if (!$niveau) {
+            $classes = $teacher->classes()->get();
+            if ($classes->count() > 0) {
+                $uniqueClass = $classes->first();
+                $niveau = $uniqueClass->level ? $uniqueClass->level . " (Classe: " . $uniqueClass->name . ")" : $uniqueClass->name;
+                
+                // Si la matière est vide, on tente de deviner via les cours de cette classe
+                if (!$matiere) {
+                    $courses = $uniqueClass->courses()->get();
+                    if ($courses->count() > 0) {
+                        $matiere = $courses->first()->name;
+                    }
+                }
+            }
+        }
+        
+        $niveau = $niveau ?: 'Non précisée';
+        $matiere = $matiere ?: 'Non précisée';
 
         // Si l'utilisateur a sélectionné une classe et un cours spécifiques
         if (!empty($data['class_id'])) {
             $class = \App\Models\TeacherClass::find($data['class_id']);
             if ($class && $class->teacher_id === $teacher->id) {
-                $niveau = $class->name;
+                $niveau = $class->level ? $class->level . " (Classe: " . $class->name . ")" : $class->name;
             }
         }
 
+        // Si l'utilisateur a sélectionné un cours spécifique
         if (!empty($data['course_id'])) {
-            $course = \App\Models\Course::find($data['course_id']);
+            $course = \App\Models\Course::with('teacherClass')->find($data['course_id']);
             // Verify course belongs to the class
             if ($course && (!isset($class) || $course->teacher_class_id === $class->id)) {
                 $matiere = $course->name;
+                // Si la classe n'était pas passée, on la récupère du cours
+                if (!isset($class) && $course->teacherClass) {
+                    $class = $course->teacherClass;
+                    $niveau = $class->level ? $class->level . " (Classe: " . $class->name . ")" : $class->name;
+                }
             }
         }
         
@@ -244,16 +333,45 @@ class AiService
         $lines = [
             "Voici mon profil et le contexte de ce cours (à prendre en compte pour toutes nos discussions) :",
             "- Nom                  : {$teacher->nom} {$teacher->prenom}",
-            "- École                : {$teacher->ecole} (Cameroun)",
+            "- École                : {$ecole}",
             "- Classe actuelle      : {$niveau}",
             "- Matière du cours     : {$matiere}",
         ];
+
+        if (!empty($data['chapter_id'])) {
+            $chapter = \App\Models\Chapter::find($data['chapter_id']);
+            if ($chapter) {
+                $lines[] = "- Chapitre actuel      : {$chapter->title}";
+            }
+        }
+
+        if (!empty($data['lesson_id'])) {
+            $lesson = \App\Models\Lesson::find($data['lesson_id']);
+            if ($lesson) {
+                $lines[] = "- Leçon actuelle       : {$lesson->title}";
+            }
+        }
 
         if ($cycleInfo) {
             $lines[] = "- Cycle scolaire       : {$cycleInfo['cycle']} ({$cycleInfo['sous_cycle']})";
         }
 
+        $type = $data['type'] ?? null;
+        $mode = $data['mode'] ?? 'dashboard';
+
+        // Si on est dans le générateur de leçon et qu'aucun type n'est spécifié, on génère un cours par défaut
+        if (!$type && $mode === 'lesson') {
+            $type = 'lesson_plan';
+        } elseif (!$type) {
+            $type = 'chat';
+        }
+
+        $typeInstruction = $this->formatInstructions($type, (string) $niveau);
+
         $lines = array_merge($lines, [
+            "",
+            "=== DIRECTIVES DE FORMATAGE SPÉCIFIQUES ===",
+            $typeInstruction,
             "",
             "=== MA DEMANDE ACTUELLE ===",
             $data['message'] ?? ''
@@ -283,6 +401,8 @@ class AiService
                 "5. Évaluation formative (2-3 questions)",
                 "6. Activité de différenciation (aide aux élèves en difficulté + défi pour les avancés)",
                 "7. Devoirs à la maison (optionnel)",
+                "",
+                "*(IMPORTANT : Si l'utilisateur demande explicitement de générer juste un petit exercice ou une autre tâche courte, ignore cette structure lourde et adapte-toi à sa demande)*",
             ]),
             'exercise' => implode("\n", [
                 "Génère une SÉRIE D'EXERCICES PROGRESSIFS avec :",
@@ -294,10 +414,13 @@ class AiService
             ]),
             'quiz' => implode("\n", [
                 "Génère un QUIZ RAPIDE d'évaluation avec :",
-                "- 10 questions maximum (QCM, vrai/faux ou questions courtes)",
-                "- Durée estimée : 10-15 minutes",
-                "- Corrigé avec les bonnes réponses clairement indiquées",
+                "- 20 questions maximum (QCM, vrai/faux ou questions courtes)",
+                "- Durée estimée : 10-20 minutes",
                 "- Barème (total sur 10 ou 20 points)",
+                "",
+                "PARTIE 2 : (Les corrigés)",
+                "- Écris IMPÉRATIVEMENT la balise `[SECTION_CORRIGE]` pour séparer.",
+                "- Corrigé avec les bonnes réponses clairement indiquées",
             ]),
             'summary' => implode("\n", [
                 "Rédige un RÉSUMÉ DE LEÇON structuré avec :",
@@ -312,29 +435,26 @@ class AiService
                 "- Solution détaillée étape par étape",
                 "- Justification de chaque réponse",
                 "- Erreurs fréquentes à signaler aux élèves",
-                "- Barème de notation proposé",
+                "- Barème suggéré",
             ]),
-            default => "Produis une ressource pédagogique claire et directement utilisable en classe.",
+            'chat' => implode("\n", [
+                "Adapte-toi à la requête de l'utilisateur sans suivre de structure stricte, tout en restant pédagogique et professionnel."
+            ]),
+            default => implode("\n", [
+                "Adapte-toi à la requête de l'utilisateur sans suivre de structure stricte, tout en restant pédagogique et professionnel."
+            ]),
         };
     }
 
+    /**
+     * Extrait le texte de la réponse Groq (format OpenAI).
+     */
     private function extractOutputText(array $payload): string
     {
-        $candidates = $payload['candidates'] ?? [];
+        $choices = $payload['choices'] ?? [];
 
-        foreach ($candidates as $candidate) {
-            $parts = $candidate['content']['parts'] ?? [];
-            $text  = '';
-
-            foreach ($parts as $part) {
-                if (isset($part['text'])) {
-                    $text .= $part['text'];
-                }
-            }
-
-            if (trim($text) !== '') {
-                return trim($text);
-            }
+        if (!empty($choices[0]['message']['content'])) {
+            return trim($choices[0]['message']['content']);
         }
 
         return '';
@@ -342,21 +462,12 @@ class AiService
 
     /**
      * Réponse locale structurée (fallback si l'API est indisponible).
-     * Simule un Chatbot basique.
      */
     private function buildLocalResponse(Teacher $teacher, array $data, bool $remoteFailed = false): array
     {
-        $message = $data['message'] ?? '';
-        
         $content = implode("\n", [
-            "Je suis désolé, mes serveurs IA sont actuellement inaccessibles (Mode Hors-ligne activé).",
-            "",
-            "Je peux néanmoins voir que vous avez demandé :",
-            "> *{$message}*",
-            "",
-            "**Profil détecté :** {$teacher->prenom} {$teacher->nom} - {$teacher->classe} à {$teacher->ecole}.",
-            "",
-            "Veuillez vérifier votre connexion internet ou la configuration de votre clé API dans le `.env` pour que je puisse générer du contenu complet et adapté à vos élèves."
+            "HELLO, PATIENTE UN TOUT PETIT PEU.",
+            "Veuillez vérifier votre connexion internet `.env`."
         ]);
 
         return [
@@ -383,18 +494,18 @@ class AiService
 
     private function calculateChatCost(string $agentId, int $charCount): float
     {
-        // Estimation basée sur la longueur de la réponse (tokens ≈ chars / 4)
         $tokens = $charCount / 4;
         return match ($agentId) {
-            'pro'        => round($tokens * 0.000015, 6),
-            'flash'      => round($tokens * 0.000001, 6),
-            'flash_lite' => round($tokens * 0.00000015, 6),
-            default      => 0.0,
+            'qwen'     => round($tokens * 0.000010, 6),
+            'compound' => round($tokens * 0.000005, 6),
+            'llama'    => round($tokens * 0.000001, 6),
+            default    => 0.0,
         };
     }
 
-    private function detectCycle(string $niveau): ?array
+    private function detectCycle(?string $niveau): ?array
     {
+        if (!$niveau) return null;
         $normalized = trim(strtoupper($niveau));
         foreach (self::CYCLES as $key => $info) {
             if (strtoupper($key) === $normalized) {
@@ -404,13 +515,14 @@ class AiService
         return null;
     }
 
-    private function isPrimary(string $niveau): bool
+    private function isPrimary(?string $niveau): bool
     {
+        if (!$niveau) return false;
         $info = $this->detectCycle($niveau);
         return $info && $info['cycle'] === 'primaire';
     }
 
-    private function defaultDuration(string $niveau): string
+    private function defaultDuration(?string $niveau): string
     {
         return $this->isPrimary($niveau) ? '45 minutes' : '55 minutes';
     }

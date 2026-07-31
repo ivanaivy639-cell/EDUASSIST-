@@ -1,0 +1,37 @@
+File: c:\Users\UltraBook 3.1\Desktop\ivana\EDUASSIST--main\backend\routes\api.php
+
+--- [2026-07-18T17:25:32Z] replace ---
+Target:         Route::prefix('ai')->group(function () {
+            Route::post('/generate', [AiController::class, 'generate']);
+            Route::get('/agents', [AiController::class, 'agents']);
+        });
+Replacement:         Route::prefix('ai')->group(function () {
+            Route::post('/generate', [AiController::class, 'generate']);
+            Route::get('/agents', [AiController::class, 'agents']);
+        });
+
+        Route::prefix('classes')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ClassCourseController::class, 'index']);
+            Route::get('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'show']);
+        });
+
+--- [2026-07-20T20:13:11Z] replace ---
+Target:         Route::prefix('classes')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ClassCourseController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\ClassCourseController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'show']);
+            Route::post('/{id}/courses', [\App\Http\Controllers\ClassCourseController::class, 'storeCourse']);
+        });
+Replacement:         Route::prefix('classes')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ClassCourseController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\ClassCourseController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\ClassCourseController::class, 'destroy']);
+
+            // Cours d'une classe
+            Route::post('/{id}/courses', [\App\Http\Controllers\ClassCourseController::class, 'storeCourse']);
+            Route::put('/{id}/courses/{courseId}', [\App\Http\Controllers\ClassCourseController::class, 'updateCourse']);
+            Route::delete('/{id}/courses/{courseId}', [\App\Http\Controllers\ClassCourseController::class, 'destroyCourse']);
+        });
+
