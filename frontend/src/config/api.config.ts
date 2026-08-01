@@ -4,7 +4,7 @@ const rawBaseUrl = (
   Platform.OS === 'web'
     ? process.env.EXPO_PUBLIC_WEB_API_URL || process.env.EXPO_PUBLIC_API_URL
     : process.env.EXPO_PUBLIC_API_URL
-) || 'http://localhost:8000/api/v1';
+) || 'https://eduassist-api-0jq8.onrender.com/api/v1';
 const normalizedBaseUrl = rawBaseUrl.endsWith('/api/v1')
   ? rawBaseUrl
   : `${rawBaseUrl.replace(/\/$/, '')}/api/v1`;

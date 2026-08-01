@@ -15,50 +15,90 @@ class ExamPublicController extends Controller
         private ExamCorrectionService $correctionService
     ) {}
 
+    public function apiStatus()
+    {
+        return response()->json([
+            'app' => 'Laravel Firebase Auth API',
+            'version' => '1.0.0',
+            'status' => 'running',
+        ]);
+    }
+
+    /**
+     * Entry route for public exam page.
+     * GET /exam/{token}
+     */
+    public function showPage(Request $request, string $token)
+    {
+        if ($request->query('submitted')) {
+            return view('exam.exam-submitted');
+        }
+        return $this->show($token);
+    }
+
     /**
      * Afficher la page d'identification de l'étudiant.
      * GET /exam/{token}
      */
     public function show(string $token)
     {
-        $exam = Exam::where('token', $token)->first();
+        try {
+            $exam = Exam::where('token', trim($token))->first();
 
-        if (!$exam) {
-            return view('exam.exam-closed', [
-                'reason' => 'not_found',
-                'message' => 'Cet examen n\'existe pas ou le lien est invalide.',
+            if (!$exam) {
+                return view('exam.exam-closed', [
+                    'reason' => 'not_found',
+                    'message' => 'Cet examen n\'existe pas ou le lien est invalide.',
+                ]);
+            }
+
+            $now = now();
+            
+            if ($exam->starts_at && $now->lt($exam->starts_at)) {
+                $dateStr = $exam->starts_at instanceof \Carbon\Carbon 
+                    ? $exam->starts_at->format('d/m/Y à H:i') 
+                    : (string) $exam->starts_at;
+                return view('exam.exam-closed', [
+                    'reason' => 'not_started',
+                    'message' => 'L\'examen n\'a pas encore commencé. Il sera disponible le ' . $dateStr . '.',
+                ]);
+            }
+            
+            if ($exam->ends_at && $now->gt($exam->ends_at)) {
+                $dateStr = $exam->ends_at instanceof \Carbon\Carbon 
+                    ? $exam->ends_at->format('d/m/Y à H:i') 
+                    : (string) $exam->ends_at;
+                return view('exam.exam-closed', [
+                    'reason' => 'ended',
+                    'message' => 'L\'examen est terminé depuis le ' . $dateStr . '.',
+                ]);
+            }
+
+            if (!$exam->isAccessible()) {
+                return view('exam.exam-closed', [
+                    'reason' => 'closed',
+                    'message' => 'Cet examen n\'est plus disponible.',
+                ]);
+            }
+
+            $teacher = $exam->teacher;
+
+            return view('exam.exam-login', [
+                'exam'         => $exam,
+                'teacher_name' => $teacher ? "{$teacher->nom} {$teacher->prenom}" : 'Enseignant',
             ]);
-        }
-
-        $now = now();
-        
-        if ($exam->starts_at && $now->lt($exam->starts_at)) {
-            return view('exam.exam-closed', [
-                'reason' => 'not_started',
-                'message' => 'L\'examen n\'a pas encore commencé. Il sera disponible le ' . $exam->starts_at->format('d/m/Y à H:i') . '.',
+        } catch (\Throwable $e) {
+            Log::error('ExamPublicController@show failed', [
+                'token' => $token,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
-        }
-        
-        if ($exam->ends_at && $now->gt($exam->ends_at)) {
-            return view('exam.exam-closed', [
-                'reason' => 'ended',
-                'message' => 'L\'examen est terminé depuis le ' . $exam->ends_at->format('d/m/Y à H:i') . '.',
-            ]);
-        }
 
-        if (!$exam->isAccessible()) {
-            return view('exam.exam-closed', [
-                'reason' => 'closed',
-                'message' => 'Cet examen n\'est plus disponible.',
-            ]);
+            return response()->view('exam.exam-closed', [
+                'reason'  => 'error',
+                'message' => 'Erreur lors du chargement de l\'examen : ' . $e->getMessage(),
+            ], 500);
         }
-
-        $teacher = $exam->teacher;
-
-        return view('exam.exam-login', [
-            'exam'         => $exam,
-            'teacher_name' => $teacher ? "{$teacher->nom} {$teacher->prenom}" : 'Enseignant',
-        ]);
     }
 
     /**
@@ -67,103 +107,132 @@ class ExamPublicController extends Controller
      */
     public function start(Request $request, string $token)
     {
-        $exam = Exam::where('token', $token)->first();
+        try {
+            $exam = Exam::where('token', trim($token))->first();
 
-        $now = now();
-        
-        if ($exam->starts_at && $now->lt($exam->starts_at)) {
-            return view('exam.exam-closed', [
-                'reason' => 'not_started',
-                'message' => 'L\'examen n\'a pas encore commencé. Il sera disponible le ' . $exam->starts_at->format('d/m/Y à H:i') . '.',
-            ]);
-        }
-        
-        if ($exam->ends_at && $now->gt($exam->ends_at)) {
-            return view('exam.exam-closed', [
-                'reason' => 'ended',
-                'message' => 'L\'examen est terminé depuis le ' . $exam->ends_at->format('d/m/Y à H:i') . '.',
-            ]);
-        }
-
-        if (!$exam->isAccessible()) {
-            return view('exam.exam-closed', [
-                'reason' => 'closed',
-                'message' => 'Cet examen n\'est plus disponible.',
-            ]);
-        }
-
-        $request->validate([
-            'student_name'      => 'required|string|max:255',
-            'student_matricule' => 'required|string|max:50',
-        ]);
-
-        $name      = trim($request->input('student_name'));
-        $matricule = strtoupper(trim($request->input('student_matricule')));
-
-        // Vérifier si cet étudiant a déjà une soumission
-        $existing = ExamSubmission::where('exam_id', $exam->id)
-            ->where('student_matricule', $matricule)
-            ->first();
-
-        if ($existing) {
-            if ($existing->isSubmitted()) {
+            if (!$exam) {
                 return view('exam.exam-closed', [
-                    'reason'  => 'already_submitted',
-                    'message' => 'Vous avez déjà composé cet examen. Vous ne pouvez pas le refaire.',
+                    'reason' => 'not_found',
+                    'message' => 'Cet examen n\'existe pas ou le lien est invalide.',
                 ]);
             }
 
-            // Si la soumission est encore en cours et pas expirée, reprendre
-            if (!$existing->isExpired()) {
-                return view('exam.exam-compose', [
-                    'exam'         => $exam,
-                    'submission'   => $existing,
-                    'remaining'    => $existing->remaining_seconds,
-                    'content_html' => $this->markdownToHtml($exam->content),
+            $now = now();
+            
+            if ($exam->starts_at && $now->lt($exam->starts_at)) {
+                $dateStr = $exam->starts_at instanceof \Carbon\Carbon 
+                    ? $exam->starts_at->format('d/m/Y à H:i') 
+                    : (string) $exam->starts_at;
+                return view('exam.exam-closed', [
+                    'reason' => 'not_started',
+                    'message' => 'L\'examen n\'a pas encore commencé. Il sera disponible le ' . $dateStr . '.',
+                ]);
+            }
+            
+            if ($exam->ends_at && $now->gt($exam->ends_at)) {
+                $dateStr = $exam->ends_at instanceof \Carbon\Carbon 
+                    ? $exam->ends_at->format('d/m/Y à H:i') 
+                    : (string) $exam->ends_at;
+                return view('exam.exam-closed', [
+                    'reason' => 'ended',
+                    'message' => 'L\'examen est terminé depuis le ' . $dateStr . '.',
                 ]);
             }
 
-            // Soumission expirée, la fermer
-            $existing->update([
-                'status'            => 'expired',
-                'is_auto_submitted' => true,
-                'submitted_at'      => now(),
+            if (!$exam->isAccessible()) {
+                return view('exam.exam-closed', [
+                    'reason' => 'closed',
+                    'message' => 'Cet examen n\'est plus disponible.',
+                ]);
+            }
+
+            $request->validate([
+                'student_name'      => 'required|string|max:255',
+                'student_matricule' => 'required|string|max:50',
             ]);
 
-            // Déclencher la correction IA
-            $this->correctionService->grade($existing);
+            $name      = trim($request->input('student_name'));
+            $matricule = strtoupper(trim($request->input('student_matricule')));
 
-            return view('exam.exam-closed', [
-                'reason'  => 'expired',
-                'message' => 'Le temps de votre épreuve est écoulé. Votre copie a été soumise automatiquement.',
+            // Vérifier si cet étudiant a déjà une soumission
+            $existing = ExamSubmission::where('exam_id', $exam->id)
+                ->where('student_matricule', $matricule)
+                ->first();
+
+            if ($existing) {
+                if ($existing->isSubmitted()) {
+                    return view('exam.exam-closed', [
+                        'reason'  => 'already_submitted',
+                        'message' => 'Vous avez déjà composé cet examen. Vous ne pouvez pas le refaire.',
+                    ]);
+                }
+
+                // Si la soumission est encore en cours et pas expirée, reprendre
+                if (!$existing->isExpired()) {
+                    return view('exam.exam-compose', [
+                        'exam'         => $exam,
+                        'submission'   => $existing,
+                        'remaining'    => $existing->remaining_seconds,
+                        'content_html' => $this->markdownToHtml($exam->content),
+                    ]);
+                }
+
+                // Soumission expirée, la fermer
+                $existing->update([
+                    'status'            => 'expired',
+                    'is_auto_submitted' => true,
+                    'submitted_at'      => now(),
+                ]);
+
+                // Déclencher la correction IA
+                try {
+                    $this->correctionService->grade($existing);
+                } catch (\Throwable $e) {
+                    Log::error('Auto-correction failed on start: ' . $e->getMessage());
+                }
+
+                return view('exam.exam-closed', [
+                    'reason'  => 'expired',
+                    'message' => 'Le temps de votre épreuve est écoulé. Votre copie a été soumise automatiquement.',
+                ]);
+            }
+
+            // Créer la soumission
+            $submission = ExamSubmission::create([
+                'exam_id'           => $exam->id,
+                'student_name'      => $name,
+                'student_matricule' => $matricule,
+                'max_score'         => $exam->max_score,
+                'started_at'        => now(),
+                'ip_address'        => $request->ip(),
+                'user_agent'        => $request->userAgent(),
+                'status'            => 'in_progress',
             ]);
+
+            Log::info('Exam started', [
+                'exam_id'    => $exam->id,
+                'student'    => $name,
+                'matricule'  => $matricule,
+                'ip_address' => $request->ip(),
+            ]);
+
+            return view('exam.exam-compose', [
+                'exam'         => $exam,
+                'submission'   => $submission,
+                'remaining'    => $exam->duration_minutes * 60,
+                'content_html' => $this->markdownToHtml($exam->content),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('ExamPublicController@start failed', [
+                'token' => $token,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->view('exam.exam-closed', [
+                'reason'  => 'error',
+                'message' => 'Erreur lors du démarrage de l\'examen : ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Créer la soumission
-        $submission = ExamSubmission::create([
-            'exam_id'           => $exam->id,
-            'student_name'      => $name,
-            'student_matricule' => $matricule,
-            'max_score'         => $exam->max_score,
-            'started_at'        => now(),
-            'ip_address'        => $request->ip(),
-            'user_agent'        => $request->userAgent(),
-            'status'            => 'in_progress',
-        ]);
-
-        Log::info('Exam started', [
-            'exam_id'    => $exam->id,
-            'student'    => $name,
-            'matricule'  => $matricule,
-            'ip_address' => $request->ip(),
-        ]);
-
-        return view('exam.exam-compose', [
-            'exam'         => $exam,
-            'submission'   => $submission,
-            'remaining'    => $exam->duration_minutes * 60,
-            'content_html' => $this->markdownToHtml($exam->content),
-        ]);
     }
 
     /**
@@ -318,8 +387,16 @@ class ExamPublicController extends Controller
         $parts = preg_split('/\[SECTION_CORRIGE\]/i', $markdown, 2);
         $content = $parts[0] ?? $markdown;
 
-        $parsedown = new \Parsedown();
-        $parsedown->setSafeMode(true);
-        return $parsedown->text($content);
+        try {
+            if (class_exists(\Parsedown::class)) {
+                $parsedown = new \Parsedown();
+                $parsedown->setSafeMode(true);
+                return $parsedown->text($content);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Parsedown conversion failed: ' . $e->getMessage());
+        }
+
+        return nl2br(e($content));
     }
 }

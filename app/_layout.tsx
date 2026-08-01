@@ -1,5 +1,7 @@
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -10,31 +12,49 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function AuthNavigation() {
   const { state } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
-  // Do not expose a route while the saved session or teacher profile is still
-  // being restored. This prevents the login screen from flashing or remaining
-  // active between a successful login and its destination.
-  if (state.isLoading || (state.isAuthenticated && state.hasTeacherProfile === null)) {
-    return <LoadingOverlay message="Chargement de votre espace..." />;
-  }
+  useEffect(() => {
+    if (state.isLoading || state.isCheckingProfile) return;
+
+    const isLogin = segments[0] === 'login';
+    const isRegister = (segments[0] as string) === 'register-teacher';
+    const isIndex = !segments[0] || (segments[0] as string) === 'index';
+
+    const timeoutId = setTimeout(() => {
+      if (!state.isAuthenticated) {
+        if (!isLogin) {
+          router.replace('/login');
+        }
+      } else if (state.hasTeacherProfile !== null) {
+        if (state.hasTeacherProfile) {
+          if (isLogin || isRegister || isIndex) {
+            router.replace('/(tabs)/home');
+          }
+        } else {
+          if (!isRegister) {
+            router.replace('/register-teacher');
+          }
+        }
+      }
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.isAuthenticated, state.hasTeacherProfile, state.isLoading, state.isCheckingProfile, segments, router]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {/* The index route is the safe anchor used by Expo Router after a guard changes. */}
-      <Stack.Screen name="index" />
-
-      <Stack.Protected guard={!state.isAuthenticated}>
+    <View style={styles.container}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="login" />
-      </Stack.Protected>
-
-      <Stack.Protected guard={state.isAuthenticated && state.hasTeacherProfile === false}>
         <Stack.Screen name="register-teacher" />
-      </Stack.Protected>
-
-      <Stack.Protected guard={state.isAuthenticated && state.hasTeacherProfile === true}>
         <Stack.Screen name="(tabs)" />
-      </Stack.Protected>
-    </Stack>
+      </Stack>
+      {(state.isLoading || state.isCheckingProfile) && (
+        <LoadingOverlay message="Chargement de votre espace..." />
+      )}
+    </View>
   );
 }
 
@@ -50,3 +70,10 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+});

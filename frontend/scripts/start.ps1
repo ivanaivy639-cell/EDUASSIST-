@@ -11,8 +11,8 @@ $env:EXPO_PUBLIC_FIREBASE_PROJECT_ID = "eduassist-prod"
 $env:EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET = "eduassist-prod.appspot.com"
 $env:EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "123456789012"
 $env:EXPO_PUBLIC_FIREBASE_APP_ID = "1:123456789012:web:abcdef1234567890"
-$env:EXPO_PUBLIC_API_URL = "http://192.168.9.112:8000"
-$env:EXPO_PUBLIC_WEB_API_URL = "http://localhost:8000"
+if (-not $env:EXPO_PUBLIC_API_URL) { $env:EXPO_PUBLIC_API_URL = "https://eduassist-api-0jq8.onrender.com/api/v1" }
+if (-not $env:EXPO_PUBLIC_WEB_API_URL) { $env:EXPO_PUBLIC_WEB_API_URL = "https://eduassist-api-0jq8.onrender.com/api/v1" }
 $env:EXPO_PUBLIC_GOOGLE_REDIRECT_URI = "http://localhost:8082"
 
 # Launch Expo without displaying env messages

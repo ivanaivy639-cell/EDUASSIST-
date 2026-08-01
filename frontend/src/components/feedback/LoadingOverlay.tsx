@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Modal } from 'react-native';
-import { colors } from '../../theme/colors';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { typography } from '../../theme/typography';
 import { spacing } from '../../theme/spacing';
 import { borderRadius } from '../../theme/borderRadius';
@@ -12,37 +11,44 @@ interface LoadingOverlayProps {
 
 export const LoadingOverlay = React.memo<LoadingOverlayProps>(({ 
   message = 'Chargement...', visible = true 
-}) => (
-  <Modal transparent visible={visible} animationType="fade">
+}) => {
+  if (!visible) return null;
+
+  return (
     <View style={styles.overlay}>
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color="#D4AF37" />
         <Text style={styles.message}>{message}</Text>
       </View>
     </View>
-  </Modal>
-));
+  );
+});
 
 LoadingOverlay.displayName = 'LoadingOverlay';
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 9999,
+    elevation: 9999,
   },
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: '#1E1E1E',
     borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#333333',
     padding: spacing.xl,
     alignItems: 'center',
-    minWidth: 200,
+    minWidth: 220,
   },
   message: {
     marginTop: spacing.md,
     fontSize: typography.size.body,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
     fontWeight: typography.weight.medium,
+    textAlign: 'center',
   },
 });

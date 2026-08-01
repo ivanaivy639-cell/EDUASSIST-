@@ -44,7 +44,7 @@ class ExamController extends Controller
                     'submissions_count' => $exam->submissions_count,
                     'graded_count'      => $exam->graded_count,
                     'average_score'     => $exam->average_score,
-                    'created_at'        => $exam->created_at->toISOString(),
+                    'created_at'        => $exam->created_at?->toISOString() ?? now()->toISOString(),
                 ];
             });
 
@@ -133,7 +133,7 @@ class ExamController extends Controller
                 'public_url' => $exam->public_url,
                 'duration_minutes' => $exam->duration_minutes,
                 'max_score'  => $exam->max_score,
-                'created_at' => $exam->created_at->toISOString(),
+                'created_at' => $exam->created_at?->toISOString() ?? now()->toISOString(),
             ],
         ], 201);
     }
@@ -183,7 +183,7 @@ class ExamController extends Controller
                     'end_time'         => $exam->end_time,
                     'starts_at'        => $exam->starts_at?->toISOString(),
                     'ends_at'          => $exam->ends_at?->toISOString(),
-                    'created_at'       => $exam->created_at->toISOString(),
+                    'created_at'       => $exam->created_at?->toISOString() ?? now()->toISOString(),
                 ],
                 'submissions' => $exam->submissions->map(function ($sub) {
                     return [

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Redirect, type Href } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
 
 import { LoginScreen } from '@/src/features/auth/LoginScreen';
 import { LoadingOverlay } from '@/src/components/feedback/LoadingOverlay';
@@ -15,16 +15,27 @@ export default function LoginPage() {
   }, [checkProfile, state.hasTeacherProfile, state.isAuthenticated, state.isCheckingProfile]);
 
   if (state.isLoading || state.isCheckingProfile || (state.isAuthenticated && state.hasTeacherProfile === null)) {
-    return <LoadingOverlay message="Verification du profil..." />;
+    return (
+      <View style={styles.container}>
+        <LoadingOverlay message="Verification du profil..." />
+      </View>
+    );
   }
 
   if (state.isAuthenticated && state.hasTeacherProfile !== null) {
     return (
-      <Redirect
-        href={(state.hasTeacherProfile ? '/home' : '/register-teacher') as Href}
-      />
+      <View style={styles.container}>
+        <LoadingOverlay message="Connexion reussie, redirection..." />
+      </View>
     );
   }
 
   return <LoginScreen />;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+});

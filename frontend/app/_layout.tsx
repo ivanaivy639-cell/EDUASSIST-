@@ -21,7 +21,7 @@ function AuthNavigation() {
 
     const isLogin = segments[0] === 'login';
     const isRegister = segments[0] === 'register-teacher';
-    const isIndex = segments.length === 0 || segments[0] === 'index';
+    const isIndex = !segments[0] || (segments[0] as string) === 'index';
 
     // Defer routing to prevent navigation state conflicts during render
     const timeoutId = setTimeout(() => {
@@ -33,7 +33,7 @@ function AuthNavigation() {
         if (state.hasTeacherProfile) {
           // L'utilisateur est connecté et a un profil, il ne doit pas rester sur les pages d'auth/accueil
           if (isLogin || isRegister || isIndex) {
-            router.replace('/home');
+            router.replace('/(tabs)/home');
           }
         } else {
           if (!isRegister) {
