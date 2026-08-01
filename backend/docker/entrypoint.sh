@@ -15,6 +15,7 @@ fi
 if [ -z "$APP_KEY" ] || [[ "$APP_KEY" != base64:* ]]; then
     echo "🔑 Generating valid base64 APP_KEY for Laravel..."
     php artisan key:generate --force
+    export APP_KEY=$(grep '^APP_KEY=' /var/www/.env | cut -d '=' -f2-)
 fi
 
 # ── Write Firebase credentials from env variable ────────
