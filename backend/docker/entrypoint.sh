@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# ── Ensure .env file exists for Laravel ───────────────────
+if [ ! -f /var/www/.env ]; then
+    echo "📄 Creating .env file..."
+    if [ -f /var/www/.env.example ]; then
+        cp /var/www/.env.example /var/www/.env
+    else
+        touch /var/www/.env
+    fi
+fi
+
 # ── Ensure valid APP_KEY for Laravel ─────────────────────
 if [ -z "$APP_KEY" ] || [[ "$APP_KEY" != base64:* ]]; then
     echo "🔑 Generating valid base64 APP_KEY for Laravel..."
@@ -22,6 +32,9 @@ echo "🔄 Running migrations..."
 php artisan migrate --force --no-interaction 2>&1 || true
 
 # ── Cache config for production ──────────────────────────
+php artisan config:clear 2>&1 || true
+php artisan route:clear 2>&1 || true
+php artisan view:clear 2>&1 || true
 php artisan config:cache 2>&1 || true
 php artisan route:cache 2>&1 || true
 php artisan view:cache 2>&1 || true
