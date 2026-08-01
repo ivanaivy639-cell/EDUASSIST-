@@ -38,7 +38,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
+            'url' => env('DATABASE_URL') ? str_replace('postgres://', 'pgsql://', env('DATABASE_URL')) : null,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'eduassist'),
@@ -48,7 +48,22 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', env('DATABASE_URL') ? 'require' : 'prefer'),
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
+
+        'postgres' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL') ? str_replace('postgres://', 'pgsql://', env('DATABASE_URL')) : null,
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'eduassist'),
+            'username' => env('DB_USERNAME', 'postgres'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
     ],

@@ -28,5 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->reportable(function (\Throwable $e) {
+            error_log('LARAVEL UNCAUGHT EXCEPTION: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+        });
     })->create();
