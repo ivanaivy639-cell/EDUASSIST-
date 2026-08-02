@@ -50,70 +50,62 @@ class AiService
             return $this->buildLocalResponse($teacher, $data, true);
         }
 
-        [$agentId, $model] = $this->resolveAgent($teacher->user, $data['agent'] ?? null);
+        [$agentId, $primaryModel] = $this->resolveAgent($teacher->user, $data['agent'] ?? null);
 
-        try {
-            $endpoint = config('ai.groq.endpoint');
+        // Liste des modèles de secours en cas d'atteinte du quota (HTTP 429)
+        $modelsToTry = array_unique([
+            $primaryModel,
+            'llama-3.3-70b-versatile',
+            'mixtral-8x7b-32768',
+            'gemma2-9b-it',
+            'llama-3.1-8b-instant',
+        ]);
 
-            $response = Http::withoutVerifying()
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type'  => 'application/json',
-                ])
-                ->timeout((int) config('ai.groq.timeout', 60))
-                ->post($endpoint, $this->groqPayload($teacher, $data, $model));
+        $endpoint = config('ai.groq.endpoint');
 
-            if (!$response->successful()) {
-                Log::warning('Groq generation failed', [
-                    'status'     => $response->status(),
-                    'body'       => Str::limit($response->body(), 1000),
-                    'agent'      => $agentId,
-                    'model'      => $model,
-                    'teacher_id' => $teacher->id,
-                ]);
+        foreach ($modelsToTry as $currentModel) {
+            try {
+                $response = Http::withoutVerifying()
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $apiKey,
+                        'Content-Type'  => 'application/json',
+                    ])
+                    ->timeout((int) config('ai.groq.timeout', 60))
+                    ->post($endpoint, $this->groqPayload($teacher, $data, $currentModel));
 
-                if ($response->status() === 429 || $response->status() === 413) {
-                    return [
-                        'content'      => "[ERROR_QUOTA] Vous avez atteint la limite d'utilisation quotidienne (ou la limite de taille) pour ce modèle (" . $agentId . ").\nPour continuer, basculez sur un autre modèle ou réduisez la longueur de votre cours.",
-                        'provider'     => 'groq',
-                        'agent'        => $agentId,
-                        'model'        => $model,
-                        'fallback'     => true,
-                        'generated_at' => now()->toISOString(),
-                        'plan_cost'    => $this->getPlanPrice($teacher->user),
-                        'chat_cost'    => 0,
-                    ];
+                if ($response->successful()) {
+                    $content = trim($this->extractOutputText($response->json()));
+                    if ($content !== '') {
+                        return [
+                            'content'      => $content,
+                            'provider'     => 'groq',
+                            'agent'        => $agentId,
+                            'model'        => $currentModel,
+                            'fallback'     => $currentModel !== $primaryModel,
+                            'generated_at' => now()->toISOString(),
+                            'plan_cost'    => $this->getPlanPrice($teacher->user),
+                            'chat_cost'    => $this->calculateChatCost($agentId, strlen($content)),
+                        ];
+                    }
                 }
 
-                return $this->buildLocalResponse($teacher, $data, true);
+                if ($response->status() === 429 || $response->status() === 413) {
+                    Log::info("Groq 429 quota reached on model {$currentModel}, trying next model...");
+                    continue;
+                }
+
+                Log::warning('Groq generation failed for model', [
+                    'status'     => $response->status(),
+                    'body'       => Str::limit($response->body(), 500),
+                    'model'      => $currentModel,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning("Exception trying Groq model {$currentModel}: " . $e->getMessage());
+                continue;
             }
-
-            $content = trim($this->extractOutputText($response->json()));
-
-            if ($content === '') {
-                Log::warning('Groq returned empty content', ['agent' => $agentId]);
-                return $this->buildLocalResponse($teacher, $data, true);
-            }
-
-            return [
-                'content'      => $content,
-                'provider'     => 'groq',
-                'agent'        => $agentId,
-                'model'        => $model,
-                'fallback'     => false,
-                'generated_at' => now()->toISOString(),
-                'plan_cost'    => $this->getPlanPrice($teacher->user),
-                'chat_cost'    => $this->calculateChatCost($agentId, strlen($content)),
-            ];
-        } catch (\Throwable $e) {
-            Log::error('AI generation exception', [
-                'error'      => $e->getMessage(),
-                'agent'      => $agentId,
-                'model'      => $model,
-                'teacher_id' => $teacher->id,
-            ]);
-            return $this->buildLocalResponse($teacher, $data, true);
         }
+
+        return $this->buildLocalResponse($teacher, $data, true);
     }
 
     public function availableAgents(Teacher $teacher): array

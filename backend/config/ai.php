@@ -5,10 +5,7 @@
  *
  * Le module utilise l'API Groq (compatible OpenAI) pour la génération
  * de contenus pédagogiques. Groq offre des inférences ultra-rapides
- * sur des modèles open-source (Llama, Qwen, Compound).
- *
- * Les "agents" correspondent aux modèles Groq exposés à l'utilisateur.
- * L'accès à chaque agent dépend du forfait (plan) payé par l'utilisateur.
+ * sur des modèles open-source (Llama, Mixtral, Gemma, Qwen).
  */
 
 return [
@@ -26,7 +23,7 @@ return [
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
         'endpoint' => 'https://api.groq.com/openai/v1/chat/completions',
-        'default_model' => env('GROQ_MODEL', 'llama-3.1-8b-instant'),
+        'default_model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
         'timeout' => 60,
         'temperature' => 0.7,
         'max_tokens' => 4096,
@@ -37,26 +34,26 @@ return [
 
     /*
      * Forfaits (plans tarifaires).
-     * Chaque forfait définit les agents accessibles et l'agent par défaut.
+     * Tous les modèles sont accessibles pour garantir zéro interruption.
      */
     'plans' => [
         'free' => [
             'label' => 'Gratuit',
             'price' => 0,
-            'default_agent' => 'llama',
-            'agents' => ['llama'],
+            'default_agent' => 'llama70b',
+            'agents' => ['llama70b', 'mixtral', 'gemma', 'llama'],
         ],
         'standard' => [
             'label' => 'Standard',
             'price' => 9.99,
-            'default_agent' => 'llama',
-            'agents' => ['llama', 'compound'],
+            'default_agent' => 'llama70b',
+            'agents' => ['llama70b', 'mixtral', 'gemma', 'llama', 'compound'],
         ],
         'premium' => [
             'label' => 'Premium',
             'price' => 29.99,
-            'default_agent' => 'compound',
-            'agents' => ['llama', 'compound', 'qwen'],
+            'default_agent' => 'llama70b',
+            'agents' => ['llama70b', 'mixtral', 'gemma', 'llama', 'compound', 'qwen'],
         ],
     ],
 
@@ -64,6 +61,21 @@ return [
      * Agents (modèles Groq) disponibles.
      */
     'agents' => [
+        'llama70b' => [
+            'label' => 'Llama 3.3 70B (Défaut)',
+            'model' => 'llama-3.3-70b-versatile',
+            'description' => 'Le modèle le plus intelligent et complet pour les cours approfondis.',
+        ],
+        'mixtral' => [
+            'label' => 'Mixtral 8x7B (32k)',
+            'model' => 'mixtral-8x7b-32768',
+            'description' => 'Excellente capacité de contexte étendu et vitesse d\'exécution.',
+        ],
+        'gemma' => [
+            'label' => 'Gemma 2 9B (Google)',
+            'model' => 'gemma2-9b-it',
+            'description' => 'Modèle ultra-rapide optimisé par Google.',
+        ],
         'llama' => [
             'label' => 'Llama 3.1 8B',
             'model' => 'llama-3.1-8b-instant',
@@ -75,9 +87,9 @@ return [
             'description' => 'Système IA avancé avec recherche web et raisonnement multi-étapes.',
         ],
         'qwen' => [
-            'label' => 'Qwen3 32B',
-            'model' => 'qwen3-32b',
-            'description' => 'Excellent en français, contexte étendu pour les contenus complexes.',
+            'label' => 'Qwen 2.5 32B',
+            'model' => 'qwen-2.5-32b',
+            'description' => 'Contexte étendu et excellente maîtrise de la langue française.',
         ],
     ],
 
