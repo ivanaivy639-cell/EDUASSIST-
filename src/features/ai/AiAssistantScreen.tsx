@@ -79,7 +79,6 @@ export const AiAssistantScreen = React.memo(() => {
     setIsLoading(true);
     try {
       const response = await AiService.generateContent({
-        message: `Rédiger une ressource pédagogique sur le thème : ${theme.trim()}`,
         type,
         theme: theme.trim(),
         niveau: niveau.trim() || undefined,

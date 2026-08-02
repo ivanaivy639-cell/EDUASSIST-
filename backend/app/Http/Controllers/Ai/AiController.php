@@ -72,30 +72,30 @@ class AiController extends Controller
             $conversation->update(['title' => $computedTitle]);
         }
 
-        if (empty($validated['message'])) {
-            $msgParts = [];
-            if (!empty($validated['theme'])) {
-                $msgParts[] = "Thème : " . $validated['theme'];
-            }
-            if (!empty($validated['matiere'])) {
-                $msgParts[] = "Matière : " . $validated['matiere'];
-            }
-            if (!empty($validated['niveau'])) {
-                $msgParts[] = "Niveau / Classe : " . $validated['niveau'];
-            }
-            if (!empty($validated['duree'])) {
-                $msgParts[] = "Durée : " . $validated['duree'];
-            }
-            if (!empty($validated['objectifs'])) {
-                $msgParts[] = "Objectifs : " . $validated['objectifs'];
-            }
-            if (!empty($validated['consignes'])) {
-                $msgParts[] = "Consignes : " . $validated['consignes'];
-            }
+        $msgParts = [];
+        if (!empty($validated['theme'])) {
+            $msgParts[] = "Thème : " . $validated['theme'];
+        }
+        if (!empty($validated['matiere'])) {
+            $msgParts[] = "Matière : " . $validated['matiere'];
+        }
+        if (!empty($validated['niveau'])) {
+            $msgParts[] = "Niveau / Classe : " . $validated['niveau'];
+        }
+        if (!empty($validated['duree'])) {
+            $msgParts[] = "Durée : " . $validated['duree'];
+        }
+        if (!empty($validated['objectifs'])) {
+            $msgParts[] = "Objectifs : " . $validated['objectifs'];
+        }
+        if (!empty($validated['consignes'])) {
+            $msgParts[] = "Consignes : " . $validated['consignes'];
+        }
 
-            $validated['message'] = count($msgParts) > 0
-                ? "Générer " . $typeLabel . " :\n" . implode("\n", $msgParts)
-                : "Générer " . $typeLabel;
+        if (count($msgParts) > 0) {
+            $validated['message'] = "Générer " . $typeLabel . " :\n" . implode("\n", $msgParts);
+        } elseif (empty($validated['message'])) {
+            $validated['message'] = "Générer " . $typeLabel;
         }
 
         // Save user message
