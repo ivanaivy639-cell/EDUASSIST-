@@ -1,0 +1,9 @@
+node_modules/
+.git/
+backend/
+frontend-old/
+dist/
+web-build/
+android/
+ios/
+*.log
