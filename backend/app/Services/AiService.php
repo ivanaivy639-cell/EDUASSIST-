@@ -278,49 +278,67 @@ class AiService
      */
     private function enrichInitialMessage(Teacher $teacher, array $data): string
     {
-        // Matière et niveau définis exclusivement selon la saisie ou le cours sélectionné
-        $matiere = !empty($data['matiere']) ? trim($data['matiere']) : null;
-        $niveau  = !empty($data['niveau']) ? trim($data['niveau']) : null;
-        $ecole   = 'Cameroun';
+        $userMatiere = !empty($data['matiere']) ? trim($data['matiere']) : null;
+        $userNiveau  = !empty($data['niveau']) ? trim($data['niveau']) : null;
+        $ecole       = 'Cameroun';
 
-        // Si un cours spécifique a été sélectionné
+        $matiere = $userMatiere;
+        $niveau  = $userNiveau;
+
+        // 1. Contexte du cours sélectionné dans l'application
         if (!empty($data['course_id'])) {
             $course = \App\Models\Course::with('teacherClass')->find($data['course_id']);
             if ($course) {
-                $matiere = $course->name;
+                if (!$matiere) {
+                    $matiere = $course->name;
+                }
                 if (!$niveau && $course->teacherClass) {
                     $niveau = $course->teacherClass->name;
                 }
             }
         }
 
-        // Si une classe spécifique a été sélectionnée
-        if (!empty($data['class_id']) && !$niveau) {
+        // 2. Contexte de la classe sélectionnée dans l'application
+        if (!empty($data['class_id'])) {
             $class = \App\Models\TeacherClass::find($data['class_id']);
-            if ($class && $class->teacher_id === $teacher->id) {
-                $niveau = $class->name;
+            if ($class) {
+                if (!$niveau) {
+                    $niveau = $class->level ? $class->level . " (" . $class->name . ")" : $class->name;
+                }
+            }
+        }
+
+        // 3. Repli intelligent sur les classes de l'enseignant si non spécifiés
+        if (!$niveau || !$matiere) {
+            $teacherClass = $teacher->classes()->with('courses')->first();
+            if ($teacherClass) {
+                if (!$niveau) {
+                    $niveau = $teacherClass->name;
+                }
+                if (!$matiere && $teacherClass->courses->count() > 0) {
+                    $matiere = $teacherClass->courses->first()->name;
+                }
             }
         }
 
         $niveau  = $niveau ?: 'Général';
         $matiere = $matiere ?: 'Général';
-        
-        // Détection du cycle
+
+        // 4. Détection du cycle scolaire
         $cycleInfo = $this->detectCycle($niveau);
 
         $themeRequired = !empty($data['theme']) ? trim($data['theme']) : (!empty($data['message']) ? trim($data['message']) : 'Général');
 
         $lines = [
             "=================================================================",
-            "EXIGENCE ABSOLUE ET STRICTE DU CONTEXTE :",
-            "TU DOIS RANGER ET OUBLIER TOUT ANCIEN SUJET ET RÉDIGER CE COURS",
-            "EXCLUSIVEMENT ET UNIQUEMENT SUR LE THÈME ET LA MATIÈRE SUIVANTS :",
+            "DIRECTIVE STRICTE DU CONTEXTE PÉDAGOGIQUE :",
+            "TU DOIS ADAPTER CE COURS ET TOUS SES EXERCICES STRICTEMENT SELON :",
             "=================================================================",
-            "- THÈME OBLIGATOIRE    : {$themeRequired}",
-            "- MATIÈRE              : {$matiere}",
             "- CLASSE / NIVEAU      : {$niveau}",
+            "- MATIÈRE DU COURS     : {$matiere}",
+            "- THÈME / SUJET OBLIG. : {$themeRequired}",
             "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
-            "- École                : {$ecole}",
+            "- Établissement        : {$ecole}",
         ];
 
         if (!empty($data['chapter_id'])) {
