@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "989142614977",
+    "project_id": "eduassist-prod",
+    "storage_bucket": "eduassist-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989142614977:android:ba050d11ceb6bc0f4a2540",
+        "android_client_info": {
+          "package_name": "com.eduassist.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "989142614977-90j59tol2ddd0fllsotvn9r28579nh89.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eduassist.app",
+            "certificate_hash": "cc45cd5118ba779f9fedaea510813e923f33b8c7"
+          }
+        },
+        {
+          "client_id": "989142614977-gfo3rv0vrnebf98nrqpqfgg5dd79droe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eduassist.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "989142614977-nm1oruk3p0ueo5mek2su1933d70n2fcc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBU974-ae0R8wTe_NUSRU76j4zTkWR9L5g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "989142614977-nm1oruk3p0ueo5mek2su1933d70n2fcc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -45,13 +45,13 @@ const fields: Array<{
   placeholder: string;
   keyboardType?: 'default' | 'phone-pad';
 }> = [
-  { name: 'nom', label: 'Nom', placeholder: 'Jean Dupont' },
-  { name: 'prenom', label: 'Prenom', placeholder: 'Marc' },
-  { name: 'telephone', label: 'Telephone', placeholder: '06 12 34 56 78', keyboardType: 'phone-pad' },
-  { name: 'ecole', label: 'Ecole', placeholder: "Nom de l'etablissement" },
-  { name: 'classe', label: 'Classe', placeholder: 'CM2' },
-  { name: 'matiere', label: 'Matiere enseignee', placeholder: 'Mathematiques' },
-];
+    { name: 'nom', label: 'Nom', placeholder: 'Jean Dupont' },
+    { name: 'prenom', label: 'Prenom', placeholder: 'Marc' },
+    { name: 'telephone', label: 'Telephone', placeholder: '06 12 34 56 78', keyboardType: 'phone-pad' },
+    { name: 'ecole', label: 'Ecole', placeholder: "Nom de l'etablissement" },
+    { name: 'classe', label: 'Classe', placeholder: 'CM2' },
+    { name: 'matiere', label: 'Matiere enseignee', placeholder: 'Mathematiques' },
+  ];
 
 const getFieldError = (name: FieldName, value: string): string | null => {
   const cleanValue = value.trim();
