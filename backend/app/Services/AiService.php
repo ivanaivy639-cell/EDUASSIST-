@@ -281,29 +281,31 @@ class AiService
      */
     private function enrichInitialMessage(Teacher $teacher, array $data): string
     {
-        $niveau = $teacher->classe ?? null;
-        $matiere = $teacher->matiere ?? null;
-        $ecole = $teacher->ecole ?? 'Cameroun';
+        // Priorité absolue aux données saisies pour la demande actuelle
+        $matiere = !empty($data['matiere']) ? trim($data['matiere']) : ($teacher->matiere ?? null);
+        $niveau  = !empty($data['niveau']) ? trim($data['niveau']) : ($teacher->classe ?? null);
+        $ecole   = $teacher->ecole ?? 'Cameroun';
 
-        // Si le niveau est vide, on tente de deviner via les classes du prof
+        $uniqueClass = null;
+
+        // Tenter d'inférer uniquement si aucune matière ni niveau n'est fourni
         if (!$niveau) {
             $classes = $teacher->classes()->get();
             if ($classes->count() > 0) {
                 $uniqueClass = $classes->first();
                 $niveau = $uniqueClass->level ? $uniqueClass->level . " (Classe: " . $uniqueClass->name . ")" : $uniqueClass->name;
-                
-                // Si la matière est vide, on tente de deviner via les cours de cette classe
-                if (!$matiere) {
-                    $courses = $uniqueClass->courses()->get();
-                    if ($courses->count() > 0) {
-                        $matiere = $courses->first()->name;
-                    }
-                }
+            }
+        }
+
+        if (!$matiere && $uniqueClass) {
+            $courses = $uniqueClass->courses()->get();
+            if ($courses->count() > 0) {
+                $matiere = $courses->first()->name;
             }
         }
         
-        $niveau = $niveau ?: 'Non précisée';
-        $matiere = $matiere ?: 'Non précisée';
+        $niveau = $niveau ?: 'Général';
+        $matiere = $matiere ?: 'Général';
 
         // Si l'utilisateur a sélectionné une classe et un cours spécifiques
         if (!empty($data['class_id'])) {
@@ -316,10 +318,8 @@ class AiService
         // Si l'utilisateur a sélectionné un cours spécifique
         if (!empty($data['course_id'])) {
             $course = \App\Models\Course::with('teacherClass')->find($data['course_id']);
-            // Verify course belongs to the class
             if ($course && (!isset($class) || $course->teacher_class_id === $class->id)) {
                 $matiere = $course->name;
-                // Si la classe n'était pas passée, on la récupère du cours
                 if (!isset($class) && $course->teacherClass) {
                     $class = $course->teacherClass;
                     $niveau = $class->level ? $class->level . " (Classe: " . $class->name . ")" : $class->name;
@@ -331,12 +331,16 @@ class AiService
         $cycleInfo = $this->detectCycle($niveau);
 
         $lines = [
-            "Voici mon profil et le contexte de ce cours (à prendre en compte pour toutes nos discussions) :",
-            "- Nom                  : {$teacher->nom} {$teacher->prenom}",
+            "Voici le contexte exact de la demande de cours (À RESPECTER STRICTEMENT) :",
+            "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
             "- École                : {$ecole}",
-            "- Classe actuelle      : {$niveau}",
+            "- Classe / Niveau      : {$niveau}",
             "- Matière du cours     : {$matiere}",
         ];
+
+        if (!empty($data['theme'])) {
+            $lines[] = "- Thème / Sujet Saisi  : {$data['theme']}";
+        }
 
         if (!empty($data['chapter_id'])) {
             $chapter = \App\Models\Chapter::find($data['chapter_id']);
