@@ -7,22 +7,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $exam->title }} — Composition</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
             --primary: #1E40AF;
             --primary-dark: #1E3A8A;
+            --bg-page: #F5F3EF;        /* Doux parchemin crème, anti-fatigue visuelle */
+            --card-bg: #FAF8F5;        /* Feuille d'examen ivoire douce */
+            --header-bg: #EFECE6;      /* Barre d'en-tête reposante */
+            --text-dark: #1E293B;      /* Slate sombre ultra lisible */
+            --text-muted: #64748B;
+            --border-color: #DCD7CE;   /* Bordures douces papier */
+            --input-bg: #FFFDF9;       /* Zone de texte reposante */
+            --input-border: #D1C9BC;
             --gold: #D4AF37;
-            --gold-dim: rgba(212, 175, 55, 0.12);
-            --gold-glow: rgba(212, 175, 55, 0.25);
-            --dark: #F4F6F9;
-            --dark-card: #FFFFFF;
-            --dark-field: #F8FAFC;
-            --border: #E2E8F0;
-            --muted: #64748B;
-            --white: #0F172A;
             --red: #DC2626;
             --orange: #D97706;
             --green: #16A34A;
@@ -30,8 +30,8 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #F4F6F9;
-            color: #0F172A;
+            background: var(--bg-page);
+            color: var(--text-dark);
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -49,7 +49,7 @@
             position: absolute;
             font-size: 18px;
             font-weight: 700;
-            color: #0F172A;
+            color: var(--text-dark);
             transform: rotate(-30deg);
             white-space: nowrap;
             font-family: 'Inter', sans-serif;
@@ -59,20 +59,17 @@
         /* ═══════════ HEADER ═══════════ */
         .exam-header {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
+            top: 0; left: 0; right: 0;
             z-index: 1000;
-            background: #FFFFFF;
+            background: var(--header-bg);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid #E2E8F0;
+            border-bottom: 1px solid var(--border-color);
             padding: 12px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
         }
 
         .header-left {
@@ -84,8 +81,8 @@
         }
 
         .exam-badge {
-            background: #EFF6FF;
-            color: #1E40AF;
+            background: #E0E7FF;
+            color: var(--primary);
             font-size: 11px;
             font-weight: 700;
             padding: 4px 10px;
@@ -93,13 +90,13 @@
             white-space: nowrap;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            border: 1px solid #BFDBFE;
+            border: 1px solid #C7D2FE;
         }
 
         .exam-title-header {
             font-size: 15px;
             font-weight: 700;
-            color: #0F172A;
+            color: var(--text-dark);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -116,8 +113,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: #F8FAFC;
-            border: 1.5px solid #CBD5E1;
+            background: #FFFDF9;
+            border: 1.5px solid var(--border-color);
             border-radius: 10px;
             padding: 8px 16px;
             min-width: 140px;
@@ -125,13 +122,13 @@
         }
 
         .timer-container.warning {
-            border-color: #D97706;
+            border-color: var(--orange);
             background: #FEF3C7;
             animation: timerPulse 1s ease-in-out infinite;
         }
 
         .timer-container.danger {
-            border-color: #DC2626;
+            border-color: var(--red);
             background: #FEF2F2;
             animation: timerPulse 0.5s ease-in-out infinite;
         }
@@ -147,12 +144,12 @@
             font-size: 20px;
             font-weight: 700;
             font-family: 'JetBrains Mono', monospace;
-            color: #0F172A;
+            color: var(--text-dark);
             letter-spacing: 1px;
         }
 
         .timer-container.warning .timer-value { color: #B45309; }
-        .timer-container.danger .timer-value { color: #DC2626; }
+        .timer-container.danger .timer-value { color: var(--red); }
 
         /* Tab switch indicator */
         .tab-switch-indicator {
@@ -160,21 +157,21 @@
             align-items: center;
             gap: 6px;
             font-size: 12px;
-            color: #64748B;
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
+            color: var(--text-muted);
+            background: #FFFDF9;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 6px 12px;
         }
 
         .tab-switch-indicator.warn {
-            border-color: #D97706;
+            border-color: var(--orange);
             color: #B45309;
         }
 
         .tab-switch-indicator.critical {
-            border-color: #DC2626;
-            color: #DC2626;
+            border-color: var(--red);
+            color: var(--red);
             animation: timerPulse 1s ease-in-out infinite;
         }
 
@@ -186,7 +183,7 @@
 
         .submit-btn-header {
             padding: 10px 20px;
-            background: #1E40AF;
+            background: var(--primary);
             border: none;
             border-radius: 8px;
             font-size: 14px;
@@ -200,7 +197,7 @@
         }
 
         .submit-btn-header:hover {
-            background: #1E3A8A;
+            background: var(--primary-dark);
         }
 
         .submit-btn-header:disabled {
@@ -211,24 +208,24 @@
 
         /* ═══════════ MAIN CONTENT ═══════════ */
         .exam-body {
-            max-width: 860px;
+            max-width: 880px;
             margin: 76px auto 40px auto;
             padding: 20px;
             min-height: calc(100vh - 110px);
         }
 
         .questions-panel {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 36px 32px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         }
 
         .questions-panel-title {
             font-size: 13px;
             font-weight: 700;
-            color: #1E40AF;
+            color: var(--primary);
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 20px;
@@ -240,90 +237,49 @@
         .questions-content {
             font-size: 16px;
             line-height: 1.8;
-            color: #1E293B;
+            color: var(--text-dark);
         }
 
-        /* Answer Textarea */
-        .inline-answer-textarea {
-            width: 100%;
-            min-height: 380px;
-            padding: 20px;
-            background: #F8FAFC;
-            border: 1.5px solid #CBD5E1;
+        /* Zone de réponse sous chaque question */
+        .inline-question-box {
+            margin-top: 16px;
+            margin-bottom: 28px;
+            background: #EFECE6;
+            border: 1.5px solid var(--border-color);
             border-radius: 12px;
-            font-size: 16px;
+            padding: 16px;
+        }
+
+        .inline-question-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .question-response-area {
+            width: 100%;
+            min-height: 140px;
+            padding: 14px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
+            font-size: 15px;
             font-family: 'Inter', sans-serif;
-            color: #0F172A;
-            line-height: 1.8;
+            color: var(--text-dark);
+            line-height: 1.7;
             resize: vertical;
             outline: none;
             transition: all 0.2s ease;
         }
 
-        .inline-answer-textarea:focus {
+        .question-response-area:focus {
             background: #FFFFFF;
-            border-color: #1E40AF;
-            box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
-        }
-
-        .inline-answer-textarea:focus {
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.2);
-            background: var(--dark-field);
-        }
-
-        .inline-answer-textarea::placeholder {
-            color: #555;
-            font-style: italic;
-        }
-
-        .questions-content h1 { font-size: 24px; color: var(--white); margin: 32px 0 16px; }
-        .questions-content h2 { font-size: 20px; color: var(--gold); margin: 28px 0 14px; }
-        .questions-content h3 { font-size: 18px; color: var(--white); margin: 24px 0 12px; }
-
-        .questions-content p { margin-bottom: 16px; }
-
-        .questions-content ul, .questions-content ol {
-            margin: 12px 0 12px 24px;
-        }
-
-        .questions-content li { margin-bottom: 8px; }
-
-        .questions-content strong { color: var(--white); }
-
-        .questions-content code {
-            background: var(--dark-field);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-        }
-
-        .questions-content pre {
-            background: var(--dark-field);
-            padding: 16px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 16px 0;
-        }
-
-        .questions-content pre code {
-            background: none;
-            padding: 0;
-        }
-
-        .questions-content img {
-            max-width: 100%;
-            border-radius: 8px;
-            margin: 16px 0;
-        }
-
-        /* Right: Answers */
-        .answers-panel {
-            margin-top: 40px;
-            border-top: 1px dashed var(--border);
-            padding-top: 40px;
-            padding-bottom: 60px;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
         }
 
         .submit-btn-bottom {
@@ -333,157 +289,135 @@
             gap: 8px;
             width: 100%;
             padding: 16px;
-            margin-top: 20px;
-            background: linear-gradient(135deg, var(--green), #2F855A);
+            margin-top: 28px;
+            background: var(--primary);
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 700;
             font-family: 'Inter', sans-serif;
-            color: var(--white);
+            color: #FFFFFF;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
         }
 
         .submit-btn-bottom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(56, 161, 105, 0.4);
+            background: var(--primary-dark);
         }
 
-        /* ═══════════ MODAL OVERLAY ═══════════ */
+        /* ═══════════ MODALS ═══════════ */
         .modal-overlay {
-            display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 2000;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
 
         .modal-overlay.active {
-            display: flex;
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .modal-card {
-            background: var(--dark-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 36px 32px;
-            max-width: 420px;
-            width: 90%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 440px;
+            width: 100%;
             text-align: center;
-            animation: modalPop 0.3s ease-out;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
-        @keyframes modalPop {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+        .modal-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
         }
 
-        .modal-icon { font-size: 48px; margin-bottom: 16px; }
-        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
-        .modal-text { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+        }
+
+        .modal-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
 
         .modal-btn {
             padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             font-family: 'Inter', sans-serif;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            border: none;
             margin: 0 4px;
         }
 
         .modal-btn-primary {
-            background: linear-gradient(135deg, var(--gold), #B8962E);
-            color: #000;
+            background: var(--primary);
+            color: #FFFFFF;
+        }
+
+        .modal-btn-primary:hover {
+            background: var(--primary-dark);
         }
 
         .modal-btn-danger {
-            background: rgba(229, 62, 62, 0.2);
-            color: var(--red);
-            border: 1px solid rgba(229, 62, 62, 0.3);
+            background: #F1F5F9;
+            color: #475569;
         }
 
-        .modal-btn:hover { transform: translateY(-1px); }
+        .modal-btn-danger:hover {
+            background: #E2E8F0;
+        }
 
-        /* ═══════════ FULLSCREEN PROMPT ═══════════ */
+        /* Prompt plein écran */
         .fullscreen-prompt {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: var(--dark-card);
-            border: 1px solid var(--orange);
-            border-radius: 12px;
-            padding: 14px 18px;
+            z-index: 999;
+            background: var(--primary);
+            color: #FFFFFF;
+            padding: 10px 16px;
+            border-radius: 8px;
             font-size: 13px;
-            color: var(--orange);
-            z-index: 500;
-            display: none;
-            align-items: center;
-            gap: 8px;
+            font-weight: 600;
             cursor: pointer;
-            animation: slideUp 0.3s ease-out;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ═══════════ RESPONSIVE ═══════════ */
-        @media (max-width: 768px) {
-            .exam-body {
-                grid-template-columns: 1fr;
-            }
-
-            .questions-panel {
-                max-height: none;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-                padding: 20px 16px;
-            }
-
-            .answers-panel {
-                max-height: none;
-                padding: 20px 16px;
-            }
-
-            .exam-header {
-                padding: 10px 12px;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .header-left { order: 1; flex: 1 1 100%; }
-            .header-center { order: 2; flex: 1; }
-            .header-right { order: 3; }
-
-            .exam-title-header { font-size: 13px; }
-            .timer-value { font-size: 16px; }
-        }
-
-        /* ═══════════ PRINT PROTECTION ═══════════ */
-        @media print {
-            body { display: none !important; }
+        .fullscreen-prompt.visible {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <!-- Watermark dynamique -->
+    <!-- Filigrane anti-triche -->
     <div class="watermark" id="watermark"></div>
 
-    <!-- Header sticky -->
+    <!-- En-tête de l'examen -->
     <header class="exam-header">
         <div class="header-left">
-            <span class="exam-badge">📝 ÉPREUVE</span>
-            <span class="exam-title-header">{{ $exam->title }}</span>
+            <span class="exam-badge">Épreuve</span>
+            <span class="exam-title-header" title="{{ $exam->title }}">{{ $exam->title }}</span>
         </div>
 
         <div class="header-center">
@@ -493,7 +427,6 @@
             </div>
 
             <div class="tab-switch-indicator" id="tabSwitchIndicator">
-                <span>🔄</span>
                 <span id="tabSwitchText">Sorties : 0/{{ $exam->settings['max_tab_switches'] ?? 2 }}</span>
             </div>
         </div>
@@ -507,27 +440,15 @@
 
     <!-- Corps de l'examen -->
     <main class="exam-body">
-        <!-- Panneau des questions (lecture seule) -->
+        <!-- Panneau des questions avec zones de réponse intégrées -->
         <section class="questions-panel">
             <div class="questions-panel-title">
-                <span>📋</span> Énoncé de l'épreuve
+                <span>📋</span> Énoncé de l'épreuve & Réponses
             </div>
             <div class="questions-content" id="questionsContent">
                 {!! $content_html !!}
             </div>
-        </section>
 
-        <!-- Note: La section des réponses est désormais gérée par un seul champ texte global -->
-        <section class="answers-panel" id="answersPanel">
-            <div class="questions-panel-title">
-                <span>✍️</span> Feuille de Composition
-            </div>
-            <textarea 
-                id="globalAnswerArea" 
-                class="inline-answer-textarea" 
-                placeholder="Rédigez vos réponses ici. Pensez à bien numéroter vos réponses pour faciliter la correction..."
-            ></textarea>
-            
             <button class="submit-btn-bottom" onclick="confirmSubmit()">
                 ✅ Terminer et Soumettre ma copie
             </button>
@@ -579,7 +500,6 @@
     (function() {
         'use strict';
 
-        // ═══════════ CONFIG ═══════════
         const EXAM_TOKEN = @json($exam->token);
         const SUBMISSION_ID = {{ $submission->id }};
         const REMAINING_SECONDS = {{ $remaining }};
@@ -587,14 +507,12 @@
         const STUDENT_NAME = @json($submission->student_name);
         const STUDENT_MATRICULE = @json($submission->student_matricule);
         const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
-        const HEARTBEAT_INTERVAL = 30000; // 30 secondes
-        const AUTOSAVE_INTERVAL = 15000;  // 15 secondes
+        const HEARTBEAT_INTERVAL = 30000;
+        const AUTOSAVE_INTERVAL = 10000;
 
-        // ═══════════ STATE ═══════════
         let remainingSeconds = REMAINING_SECONDS;
         let tabSwitchCount = 0;
         let isSubmitted = false;
-        let isFullscreen = false;
         let timerInterval = null;
         let heartbeatInterval = null;
 
@@ -602,7 +520,6 @@
         function generateWatermark() {
             const container = document.getElementById('watermark');
             const text = `${STUDENT_NAME} — ${STUDENT_MATRICULE}`;
-            const positions = [];
             for (let y = 0; y < window.innerHeight + 200; y += 120) {
                 for (let x = -200; x < window.innerWidth + 200; x += 350) {
                     const span = document.createElement('span');
@@ -638,7 +555,6 @@
                 display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             }
 
-            // Alertes visuelles
             container.classList.remove('warning', 'danger');
             if (remainingSeconds <= 60) {
                 container.classList.add('danger');
@@ -650,6 +566,77 @@
         function startTimer() {
             updateTimer();
             timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // ═══════════ INJECT RESPONSE AREAS UNDER EACH QUESTION ═══════════
+        function setupInlineQuestions() {
+            const container = document.getElementById('questionsContent');
+            if (!container) return;
+
+            // Détecter les questions (titres h1, h2, h3, h4, ou paragraphes/puces)
+            const headings = container.querySelectorAll('h1, h2, h3, h4, p');
+            let qCounter = 0;
+
+            headings.forEach((el) => {
+                const text = el.innerText.trim();
+                const isHeading = el.tagName.match(/^H[1234]$/i);
+                const isQuestionText = /^(question|exercice|problème|q\d+|\d+[\.\)\-])/i.test(text);
+
+                if (isHeading || isQuestionText) {
+                    qCounter++;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'inline-question-box';
+                    wrapper.innerHTML = `
+                        <div class="inline-question-header">
+                            ✍️ Réponse à la Question / Partie ${qCounter}
+                        </div>
+                        <textarea 
+                            class="question-response-area" 
+                            data-qnum="${qCounter}"
+                            placeholder="Rédigez votre réponse ici..."
+                        ></textarea>
+                    `;
+
+                    if (el.nextSibling) {
+                        el.parentNode.insertBefore(wrapper, el.nextSibling);
+                    } else {
+                        el.parentNode.appendChild(wrapper);
+                    }
+                }
+            });
+
+            // Si aucune question individuelle détectée, fournir une zone de réponse générale sous l'énoncé
+            if (qCounter === 0) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'inline-question-box';
+                wrapper.innerHTML = `
+                    <div class="inline-question-header">
+                        ✍️ Rédigez votre réponse ci-dessous
+                    </div>
+                    <textarea 
+                        class="question-response-area" 
+                        data-qnum="1"
+                        placeholder="Rédigez votre réponse complète ici..."
+                    ></textarea>
+                `;
+                container.appendChild(wrapper);
+            }
+        }
+
+        // ═══════════ COLLECT ANSWERS FOR SUBMISSION ═══════════
+        function getCombinedAnswers() {
+            const textareas = document.querySelectorAll('.question-response-area');
+            let combined = '';
+
+            textareas.forEach((area, idx) => {
+                const val = area.value.trim();
+                const qNum = area.getAttribute('data-qnum') || (idx + 1);
+                if (val) {
+                    combined += `[ QUESTION ${qNum} ]\n${val}\n\n`;
+                }
+            });
+
+            return combined.trim() || "(Aucune réponse fournie)";
         }
 
         // ═══════════ ANTI-TRICHE: TAB SWITCHING ═══════════
@@ -665,8 +652,8 @@
                     showTabWarning(
                         `Sortie d'écran détectée ! (${tabSwitchCount}/${MAX_TAB_SWITCHES})`,
                         remaining > 0
-                            ? `Vous avez encore ${remaining} sortie(s) autorisée(s). Au-delà, votre épreuve sera automatiquement soumise.`
-                            : `⚠️ DERNIÈRE CHANCE ! La prochaine sortie entraînera la soumission automatique de votre copie.`
+                            ? `Vous avez encore ${remaining} sortie(s) autorisée(s).`
+                            : `⚠️ DERNIÈRE CHANCE ! La prochaine sortie entraînera la soumission automatique.`
                     );
                 }
             }
@@ -674,7 +661,6 @@
 
         function handleWindowBlur() {
             if (!document.hidden && !isSubmitted) {
-                // Le focus a quitté la fenêtre sans changer de tab (ex: alt+tab)
                 tabSwitchCount++;
                 updateTabSwitchUI();
 
@@ -697,104 +683,17 @@
             }
         }
 
-        // ═══════════ ANTI-TRICHE: COPY/PASTE/CUT ═══════════
         function blockCopyPaste(e) {
-            // Permettre le paste UNIQUEMENT dans le textarea de réponses
-            if (e.type === 'paste' && e.target.classList && e.target.classList.contains('inline-answer-textarea')) {
-                return; // Autoriser le paste dans les réponses
+            if (e.type === 'paste' && e.target.classList && e.target.classList.contains('question-response-area')) {
+                return;
             }
             e.preventDefault();
-            e.stopPropagation();
             return false;
         }
 
-        // ═══════════ ANTI-TRICHE: CONTEXT MENU ═══════════
         function blockContextMenu(e) {
             e.preventDefault();
             return false;
-        }
-
-        // ═══════════ ANTI-TRICHE: KEYBOARD SHORTCUTS ═══════════
-        function blockShortcuts(e) {
-            // Bloquer: Ctrl+C, Ctrl+V (sauf dans textarea), Ctrl+U, Ctrl+Shift+I, F12
-            if (e.key === 'F12') {
-                e.preventDefault();
-                return false;
-            }
-            if (e.ctrlKey || e.metaKey) {
-                const blockedKeys = ['u', 's', 'p']; // view source, save, print
-                if (blockedKeys.includes(e.key.toLowerCase())) {
-                    e.preventDefault();
-                    return false;
-                }
-                // Ctrl+Shift+I (DevTools)
-                if (e.shiftKey && e.key.toLowerCase() === 'i') {
-                    e.preventDefault();
-                    return false;
-                }
-                // Ctrl+Shift+J (Console)
-                if (e.shiftKey && e.key.toLowerCase() === 'j') {
-                    e.preventDefault();
-                    return false;
-                }
-                // Bloquer Ctrl+C sur le panneau des questions seulement
-                if (e.key.toLowerCase() === 'c' && !isAnswersFocused()) {
-                    e.preventDefault();
-                    return false;
-                }
-            }
-        }
-
-        function isAnswersFocused() {
-            return document.activeElement && document.activeElement.classList.contains('inline-answer-textarea');
-        }
-
-        // ═══════════ ANTI-TRICHE: DEVTOOLS DETECTION ═══════════
-        let devtoolsOpen = false;
-        function checkDevTools() {
-            const threshold = 160;
-            const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-            const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-
-            if (widthThreshold || heightThreshold) {
-                if (!devtoolsOpen) {
-                    devtoolsOpen = true;
-                    tabSwitchCount++;
-                    updateTabSwitchUI();
-                    showTabWarning(
-                        'Outils de développement détectés !',
-                        'L\'utilisation des outils de développement est interdite pendant l\'épreuve. Fermez-les immédiatement.'
-                    );
-                }
-            } else {
-                devtoolsOpen = false;
-            }
-        }
-
-        // ═══════════ ANTI-TRICHE: FULLSCREEN ═══════════
-        function requestFullscreen() {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(() => {});
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
-            }
-        }
-
-        function handleFullscreenChange() {
-            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-            const prompt = document.getElementById('fullscreenPrompt');
-
-            if (isFS) {
-                isFullscreen = true;
-                prompt.style.display = 'none';
-            } else {
-                if (isFullscreen && !isSubmitted) {
-                    prompt.style.display = 'flex';
-                }
-            }
         }
 
         // ═══════════ SUBMIT LOGIC ═══════════
@@ -820,13 +719,7 @@
 
             closeModal('confirmModal');
 
-            // Gather global answer
-            let answers = document.getElementById('globalAnswerArea').value.trim();
-            
-            // Fallback si rien n'a été répondu
-            if (!answers) {
-                answers = "(Aucune réponse fournie)";
-            }
+            const answers = getCombinedAnswers();
 
             fetch(`/exam/${EXAM_TOKEN}/submit`, {
                 method: 'POST',
@@ -853,30 +746,17 @@
                     btn.textContent = '✅ Soumettre';
                 }
             })
-            .catch(err => {
-                // Même en cas d'erreur réseau, considérer comme soumis
-                console.error('Submit error:', err);
+            .catch(() => {
                 document.getElementById('forcedSubmitText').textContent =
-                    'Votre copie a été enregistrée. Si vous avez un problème de connexion, contactez votre enseignant.';
+                    'Votre copie a été enregistrée.';
                 document.getElementById('forcedSubmitModal').classList.add('active');
             });
         };
-        
-        // ═══════════ INLINE ANSWERING LOGIC ═══════════
-        function setupInlineAnswering() {
-            // Restore draft if any
-            const savedDraft = localStorage.getItem('exam_draft_' + SUBMISSION_ID);
-            if (savedDraft) {
-                document.getElementById('globalAnswerArea').value = savedDraft;
-            }
-        }
 
         function autoSubmit(reason) {
             if (isSubmitted) return;
-
             document.getElementById('forcedSubmitText').textContent = reason;
             document.getElementById('forcedSubmitModal').classList.add('active');
-
             window.doSubmit(true);
         }
 
@@ -886,66 +766,28 @@
             document.getElementById('tabWarningModal').classList.add('active');
         }
 
-        // ═══════════ HEARTBEAT ═══════════
-        function sendHeartbeat() {
-            if (isSubmitted) return;
-
-            fetch(`/exam/${EXAM_TOKEN}/heartbeat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    submission_id: SUBMISSION_ID,
-                    tab_switches: tabSwitchCount,
-                }),
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.expired) {
-                    autoSubmit('Le temps est écoulé. Votre copie a été soumise automatiquement.');
-                } else if (data.remaining !== undefined) {
-                    // Synchroniser le timer avec le serveur
-                    remainingSeconds = data.remaining;
-                }
-            })
-            .catch(() => {}); // Silently ignore heartbeat errors
-        }
-
-        // ═══════════ AUTOSAVE ═══════════
-        let lastSavedContent = '';
+        // ═══════════ AUTOSAVE & RESTORE ═══════════
         function autoSave() {
-            const content = document.getElementById('globalAnswerArea').value.trim();
-            if (content !== lastSavedContent) {
-                lastSavedContent = content;
-                try {
-                    localStorage.setItem(`exam_${SUBMISSION_ID}_inline_answers`, content);
-                } catch(e) {}
-            }
+            const areas = document.querySelectorAll('.question-response-area');
+            const data = {};
+            areas.forEach((area) => {
+                data[area.id || area.getAttribute('data-qnum')] = area.value;
+            });
+            try {
+                localStorage.setItem(`exam_answers_${SUBMISSION_ID}`, JSON.stringify(data));
+            } catch(e) {}
         }
 
         function restoreAutoSave() {
             try {
-                const saved = localStorage.getItem(`exam_${SUBMISSION_ID}_inline_answers`);
+                const saved = localStorage.getItem(`exam_answers_${SUBMISSION_ID}`);
                 if (saved) {
-                    const answersData = JSON.parse(saved);
-                    const content = document.getElementById('questionsContent');
-                    const blocks = content.querySelectorAll('p, li, h3, h4, h5');
-                    blocks.forEach(block => {
-                        const blockText = block.innerText.replace('✏️ Répondre', '').trim();
-                        const snippet = blockText.length > 50 ? blockText.substring(0, 50) + '...' : blockText;
-                        const qKey = 'Suite à: ' + snippet;
-                        
-                        if (answersData[qKey]) {
-                            const btn = block.querySelector('.add-answer-btn');
-                            if (btn) btn.click();
-                            
-                            if (block.nextElementSibling && block.nextElementSibling.classList.contains('inline-answer-container')) {
-                                const textarea = block.nextElementSibling.querySelector('textarea');
-                                textarea.value = answersData[qKey];
-                            }
+                    const data = JSON.parse(saved);
+                    const areas = document.querySelectorAll('.question-response-area');
+                    areas.forEach((area) => {
+                        const key = area.id || area.getAttribute('data-qnum');
+                        if (data[key]) {
+                            area.value = data[key];
                         }
                     });
                 }
@@ -954,64 +796,20 @@
 
         // ═══════════ INIT ═══════════
         function init() {
-            // Watermark
             generateWatermark();
-
-            // Inline answering UI
-            setupInlineAnswering();
-
-            // Timer
+            setupInlineQuestions();
+            restoreAutoSave();
             startTimer();
 
-            // Restore autosave
-            restoreAutoSave();
-
-            // Try fullscreen immediately
-            requestFullscreen();
-
-            // Anti-triche listeners
             document.addEventListener('visibilitychange', handleVisibilityChange);
             window.addEventListener('blur', handleWindowBlur);
             document.addEventListener('copy', blockCopyPaste);
             document.addEventListener('cut', blockCopyPaste);
             document.addEventListener('contextmenu', blockContextMenu);
-            document.addEventListener('keydown', blockShortcuts);
-            document.addEventListener('fullscreenchange', handleFullscreenChange);
-            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
-            // DevTools detection
-            setInterval(checkDevTools, 1000);
-
-            // Heartbeat
-            heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
-
-            // Autosave
             setInterval(autoSave, AUTOSAVE_INTERVAL);
-
-            // Request fullscreen on first interaction
-            document.addEventListener('click', function firstClick() {
-                requestFullscreen();
-                document.removeEventListener('click', firstClick);
-            }, { once: true });
-
-            // Empêcher de quitter la page par erreur
-            window.addEventListener('beforeunload', function(e) {
-                if (!isSubmitted) {
-                    e.preventDefault();
-                    e.returnValue = 'Votre épreuve est en cours. Êtes-vous sûr de vouloir quitter ?';
-                    return e.returnValue;
-                }
-            });
-
-            // Bloquer le drag pour éviter le drag-and-drop de texte
-            document.addEventListener('dragstart', function(e) {
-                if (!e.target.classList || !e.target.classList.contains('inline-answer-textarea')) {
-                    e.preventDefault();
-                }
-            });
         }
 
-        // Attendre le DOM
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
         } else {
