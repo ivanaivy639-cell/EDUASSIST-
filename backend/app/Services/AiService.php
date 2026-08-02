@@ -289,7 +289,7 @@ class AiService
         $matiere = $userMatiere;
         $niveau  = $userNiveau;
 
-        // 1. Contexte du cours sélectionné dans l'application
+        // 1. Si un cours spécifique est sélectionné (course_id)
         if (!empty($data['course_id'])) {
             $course = \App\Models\Course::with('teacherClass')->find($data['course_id']);
             if ($course) {
@@ -297,30 +297,36 @@ class AiService
                     $matiere = $course->name;
                 }
                 if (!$niveau && $course->teacherClass) {
-                    $niveau = $course->teacherClass->name;
+                    $classObj = $course->teacherClass;
+                    $niveau = $classObj->level ? $classObj->level . " (" . $classObj->name . ")" : $classObj->name;
                 }
             }
         }
 
-        // 2. Contexte de la classe sélectionnée dans l'application
+        // 2. Si une classe spécifique est sélectionnée (class_id) : charger STRICTEMENT cette classe
         if (!empty($data['class_id'])) {
-            $class = \App\Models\TeacherClass::find($data['class_id']);
-            if ($class) {
+            $activeClass = \App\Models\TeacherClass::with('courses')->find($data['class_id']);
+            if ($activeClass) {
                 if (!$niveau) {
-                    $niveau = $class->level ? $class->level . " (" . $class->name . ")" : $class->name;
+                    $niveau = $activeClass->level ? $activeClass->level . " (" . $activeClass->name . ")" : $activeClass->name;
+                }
+                if (!$matiere && $activeClass->courses->count() > 0) {
+                    $matiere = $activeClass->courses->first()->name;
                 }
             }
         }
 
-        // 3. Repli intelligent sur les classes de l'enseignant si non spécifiés
-        if (!$niveau || !$matiere) {
-            $teacherClass = $teacher->classes()->with('courses')->first();
-            if ($teacherClass) {
-                if (!$niveau) {
-                    $niveau = $teacherClass->name;
-                }
-                if (!$matiere && $teacherClass->courses->count() > 0) {
-                    $matiere = $teacherClass->courses->first()->name;
+        // 3. Repli général UNIQUEMENT si aucun class_id ni course_id n'est fourni
+        if (empty($data['class_id']) && empty($data['course_id'])) {
+            if (!$niveau || !$matiere) {
+                $defaultClass = $teacher->classes()->with('courses')->first();
+                if ($defaultClass) {
+                    if (!$niveau) {
+                        $niveau = $defaultClass->level ? $defaultClass->level . " (" . $defaultClass->name . ")" : $defaultClass->name;
+                    }
+                    if (!$matiere && $defaultClass->courses->count() > 0) {
+                        $matiere = $defaultClass->courses->first()->name;
+                    }
                 }
             }
         }
