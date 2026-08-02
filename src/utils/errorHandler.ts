@@ -26,7 +26,7 @@ export class ErrorHandler {
         case 401:
           return {
             category: 'api',
-            message: 'Session expiree. Veuillez vous reconnecter.',
+            message: data?.message || 'Token Google invalide ou expiré. Veuillez réessayer.',
             technicalMessage: 'Token invalide ou expire',
           };
         case 404:
