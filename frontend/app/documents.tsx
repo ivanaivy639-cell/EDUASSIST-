@@ -246,8 +246,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    padding: spacing.xl,
+    padding: spacing.lg,
     paddingBottom: 100,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
   description: {
     color: MUTED,
