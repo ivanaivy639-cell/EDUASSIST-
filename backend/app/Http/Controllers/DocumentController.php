@@ -11,6 +11,7 @@ class DocumentController extends Controller
 {
     /**
      * Répertorie l'ensemble des documents générés et téléchargés sur la plateforme par classe.
+     * Chaque document utilise les informations saisies par l'utilisateur et sa classe.
      */
     public function index(Request $request): JsonResponse
     {
@@ -33,7 +34,7 @@ class DocumentController extends Controller
 
         // 1. Documents issus des examens/épreuves créés
         foreach ($exams as $exam) {
-            $className = 'Toutes les classes';
+            $className = 'Classe générale';
             $classId = null;
             if ($exam->course_id) {
                 foreach ($classes as $cls) {
@@ -45,9 +46,16 @@ class DocumentController extends Controller
                 }
             }
 
+            // Titre explicite combinant l'intitulé de l'épreuve et sa classe
+            $examTitle = trim($exam->title) ?: 'Évaluation';
+            $formattedTitle = 'Épreuve : ' . $examTitle;
+            if ($className !== 'Classe générale') {
+                $formattedTitle .= ' — ' . $className;
+            }
+
             $documents[] = [
                 'id'         => 'exam_' . $exam->id,
-                'title'      => 'Épreuve : ' . $exam->title,
+                'title'      => $formattedTitle,
                 'format'     => 'pdf',
                 'class_id'   => $classId,
                 'class_name' => $className,
@@ -61,9 +69,12 @@ class DocumentController extends Controller
             foreach ($cls->courses as $course) {
                 foreach ($course->chapters as $chapter) {
                     foreach ($chapter->lessons as $lesson) {
+                        $lessonTitle = trim($lesson->title) ?: trim($course->name);
+                        $formattedTitle = "Fiche : {$lessonTitle} — {$cls->name}";
+
                         $documents[] = [
                             'id'         => 'lesson_' . $lesson->id,
-                            'title'      => 'Fiche : ' . $lesson->title,
+                            'title'      => $formattedTitle,
                             'format'     => 'docx',
                             'class_id'   => $cls->id,
                             'class_name' => $cls->name,

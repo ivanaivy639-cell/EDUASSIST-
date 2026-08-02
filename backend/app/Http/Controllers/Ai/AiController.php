@@ -37,19 +37,39 @@ class AiController extends Controller
                 ->find($conversationId);
         }
 
+        // Construction d'un titre explicite avec le type, le thème saisi et la classe
+        $typeLabel = match ($validated['type'] ?? 'lesson_plan') {
+            'lesson_plan' => 'Fiche de cours',
+            'exercise'    => 'Exercices',
+            'quiz'        => 'Quiz',
+            'summary'     => 'Résumé',
+            'correction'  => 'Corrigé',
+            default       => 'Document',
+        };
+
+        $themeInput = !empty($validated['theme']) ? trim($validated['theme']) : (trim($validated['message'] ?? ''));
+        $niveauInput = !empty($validated['niveau']) ? trim($validated['niveau']) : '';
+
+        $titleParts = [$typeLabel];
+        if ($themeInput) {
+            $titleParts[] = mb_substr($themeInput, 0, 50);
+        }
+        if ($niveauInput) {
+            $titleParts[] = $niveauInput;
+        }
+
+        $computedTitle = implode(' — ', $titleParts);
+
         if (!$conversation) {
             $conversation = AiConversation::create([
-                'user_id' => $request->user()->id,
-                'course_id' => $validated['course_id'] ?? null,
+                'user_id'    => $request->user()->id,
+                'course_id'  => $validated['course_id'] ?? null,
                 'chapter_id' => $validated['chapter_id'] ?? null,
-                'lesson_id' => $validated['lesson_id'] ?? null,
-                'title' => 'Nouvelle conversation',
+                'lesson_id'  => $validated['lesson_id'] ?? null,
+                'title'      => $computedTitle,
             ]);
         } else {
-            // Restore context from existing conversation if not provided in request
-            $validated['course_id'] = $validated['course_id'] ?? $conversation->course_id;
-            $validated['chapter_id'] = $validated['chapter_id'] ?? $conversation->chapter_id;
-            $validated['lesson_id'] = $validated['lesson_id'] ?? $conversation->lesson_id;
+            $conversation->update(['title' => $computedTitle]);
         }
 
         // Save user message

@@ -248,7 +248,9 @@ export const AiAssistantScreen = React.memo(() => {
               <View style={styles.resultHeader}>
                 <View style={styles.resultTitleRow}>
                   <Ionicons name="checkmark-circle" size={22} color={GREEN} />
-                  <Text style={styles.resultTitle}>Ressource prete</Text>
+                  <Text style={styles.resultTitle}>
+                    {result.conversation_title || `${theme} ${niveau ? `— ${niveau}` : ''}`}
+                  </Text>
                 </View>
                 <Text style={styles.resultMeta}>
                   {result.provider === 'local'

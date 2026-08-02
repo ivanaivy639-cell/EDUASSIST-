@@ -440,7 +440,9 @@ export const AiAssistantScreen = React.memo(({
             <View style={styles.quotaCard}>
               <View style={styles.quotaHeader}>
                 <Ionicons name="warning" size={20} color={GOLD} />
-                <Text style={styles.quotaTitle}>Quota Atteint</Text>
+                <Text style={styles.resultTitle}>
+                  {result.conversation_title || `${theme} ${niveau ? `— ${niveau}` : ''}`}
+                </Text>
               </View>
               <Text style={styles.quotaText}>{displayText}</Text>
               <View style={styles.quotaActions}>
