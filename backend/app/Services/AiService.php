@@ -189,11 +189,8 @@ class AiService
             ];
         }
 
-        // Message actuel de l'utilisateur
-        $latestMessage = $data['message'] ?? '';
-        if (empty($history)) {
-            $latestMessage = $this->enrichInitialMessage($teacher, $data);
-        }
+        // Message actuel de l'utilisateur enrichi avec la demande explicite
+        $latestMessage = $this->enrichInitialMessage($teacher, $data);
 
         // Si un fichier est joint, ajouter une description
         if (!empty($data['file_data']) && !empty($data['file_name'])) {
@@ -330,17 +327,20 @@ class AiService
         // Détection du cycle
         $cycleInfo = $this->detectCycle($niveau);
 
+        $themeRequired = !empty($data['theme']) ? trim($data['theme']) : (!empty($data['message']) ? trim($data['message']) : 'Général');
+
         $lines = [
-            "Voici le contexte exact de la demande de cours (À RESPECTER STRICTEMENT) :",
+            "=================================================================",
+            "EXIGENCE ABSOLUE ET STRICTE DU CONTEXTE :",
+            "TU DOIS RANGER ET OUBLIER TOUT ANCIEN SUJET ET RÉDIGER CE COURS",
+            "EXCLUSIVEMENT ET UNIQUEMENT SUR LE THÈME ET LA MATIÈRE SUIVANTS :",
+            "=================================================================",
+            "- THÈME OBLIGATOIRE    : {$themeRequired}",
+            "- MATIÈRE              : {$matiere}",
+            "- CLASSE / NIVEAU      : {$niveau}",
             "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
             "- École                : {$ecole}",
-            "- Classe / Niveau      : {$niveau}",
-            "- Matière du cours     : {$matiere}",
         ];
-
-        if (!empty($data['theme'])) {
-            $lines[] = "- Thème / Sujet Saisi  : {$data['theme']}";
-        }
 
         if (!empty($data['chapter_id'])) {
             $chapter = \App\Models\Chapter::find($data['chapter_id']);
