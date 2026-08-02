@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image, ActivityIndicator, Modal, TextInput, Platform } from 'react-native';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Modal, TextInput, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { router, type Href, Link } from 'expo-router';
 import { useAuth } from '@/src/hooks/useAuth';
 import { spacing } from '@/src/theme/spacing';
 import { ClassService } from '@/src/services/ClassService';
+import { apiClient } from '@/src/services/ApiClient';
 import type { TeacherClass } from '@/src/types/class.types';
 
 const GOLD = '#D4AF37';
@@ -20,32 +21,45 @@ const WHITE = '#FFFFFF';
 export default function HomeScreen() {
   const { state, logout } = useAuth();
   const [classes, setClasses] = useState<TeacherClass[]>([]);
+  const [examsCount, setExamsCount] = useState<number>(0);
+  const [documentsCount, setDocumentsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isAddClassVisible, setAddClassVisible] = useState(false);
   const [newClassName, setNewClassName] = useState('');
   const [newClassLevel, setNewClassLevel] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
-  const loadClasses = useCallback(() => {
-    ClassService.getClasses().then(res => {
-      if (res.success) {
-        setClasses(res.data);
+  const loadData = useCallback(async () => {
+    try {
+      const [classesRes, examsRes, docsRes] = await Promise.all([
+        ClassService.getClasses().catch(() => null),
+        apiClient.get('/exams').catch(() => null),
+        apiClient.get('/documents').catch(() => null),
+      ]);
+
+      if (classesRes?.success && Array.isArray(classesRes.data)) {
+        setClasses(classesRes.data);
       }
-    }).catch(console.error);
+      if (examsRes?.data?.success && Array.isArray(examsRes.data.data)) {
+        setExamsCount(examsRes.data.data.length);
+      }
+      if (docsRes?.data?.success && Array.isArray(docsRes.data.data)) {
+        setDocumentsCount(docsRes.data.data.length);
+      }
+    } catch (error) {
+      console.error('Error loading home data:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    let active = true;
-    ClassService.getClasses().then(res => {
-      if (active && res.success) {
-        setClasses(res.data);
-      }
-      if (active) setLoading(false);
-    }).catch(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
+    void loadData();
+  }, [loadData]);
+
+  const totalCourses = useMemo(() => {
+    return classes.reduce((sum, cls) => sum + (cls.courses?.length || 0), 0);
+  }, [classes]);
 
   const handleAddClass = async () => {
     if (!newClassName.trim()) return;
@@ -55,7 +69,7 @@ export default function HomeScreen() {
       setAddClassVisible(false);
       setNewClassName('');
       setNewClassLevel('');
-      loadClasses();
+      void loadData();
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de créer la classe.');
     } finally {
@@ -96,10 +110,6 @@ export default function HomeScreen() {
                 <Text style={styles.brand}>EduAssist</Text>
               </View>
               <View style={styles.headerIcons}>
-                <TouchableOpacity style={styles.iconBtn}>
-                  <Ionicons name="notifications-outline" size={24} color={WHITE} />
-                  <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.iconBtn} onPress={handleLogout}>
                   <Ionicons name="log-out-outline" size={24} color={WHITE} />
                 </TouchableOpacity>
@@ -118,7 +128,7 @@ export default function HomeScreen() {
           </SafeAreaView>
         </View>
 
-        {/* Stats Horizontal Scroll */}
+        {/* Real Dynamic Stats Horizontal Scroll */}
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
@@ -127,27 +137,38 @@ export default function HomeScreen() {
         >
           <View style={styles.statCard}>
             <View style={styles.statIconBox}>
-              <Ionicons name="people-outline" size={20} color={GOLD} />
+              <MaterialCommunityIcons name="google-classroom" size={20} color={GOLD} />
             </View>
-            <Text style={styles.statTitle}>Élèves</Text>
-            <Text style={styles.statValue}>142</Text>
-            <Text style={styles.statSub}>+3 nouveaux</Text>
+            <Text style={styles.statTitle}>Classes</Text>
+            <Text style={styles.statValue}>{classes.length}</Text>
+            <Text style={styles.statSub}>Gérées</Text>
           </View>
+
           <View style={styles.statCard}>
             <View style={styles.statIconBox}>
-              <Ionicons name="analytics-outline" size={20} color={GOLD} />
+              <Ionicons name="book-outline" size={20} color={GOLD} />
             </View>
-            <Text style={styles.statTitle}>Taux de réussite</Text>
-            <Text style={styles.statValue}>88%</Text>
-            <Text style={styles.statSub}>+5% ce mois</Text>
+            <Text style={styles.statTitle}>Cours</Text>
+            <Text style={styles.statValue}>{totalCourses}</Text>
+            <Text style={styles.statSub}>Enregistrés</Text>
           </View>
+
           <View style={styles.statCard}>
             <View style={styles.statIconBox}>
-              <Ionicons name="star-outline" size={20} color={GOLD} />
+              <Ionicons name="school-outline" size={20} color={GOLD} />
             </View>
-            <Text style={styles.statTitle}>Moyenne</Text>
-            <Text style={styles.statValue}>14/20</Text>
-            <Text style={styles.statSub}>Stable</Text>
+            <Text style={styles.statTitle}>Évaluations</Text>
+            <Text style={styles.statValue}>{examsCount}</Text>
+            <Text style={styles.statSub}>Créées</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={styles.statIconBox}>
+              <Ionicons name="document-text-outline" size={20} color={GOLD} />
+            </View>
+            <Text style={styles.statTitle}>Documents</Text>
+            <Text style={styles.statValue}>{documentsCount}</Text>
+            <Text style={styles.statSub}>Disponibles</Text>
           </View>
         </ScrollView>
 
@@ -164,25 +185,29 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </Link>
             
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconBoxSecondary}>
-                <Ionicons name="pencil-outline" size={28} color={GOLD} />
-              </View>
-              <Text style={styles.actionText}>Devoirs</Text>
-            </TouchableOpacity>
+            <Link href="/documents" asChild>
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIconBoxSecondary}>
+                  <Ionicons name="folder-open-outline" size={28} color={GOLD} />
+                </View>
+                <Text style={styles.actionText}>Documents</Text>
+              </TouchableOpacity>
+            </Link>
 
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconBoxSecondary}>
-                <Ionicons name="checkbox-outline" size={28} color={GOLD} />
-              </View>
-              <Text style={styles.actionText}>Copies</Text>
-            </TouchableOpacity>
+            <Link href="/(tabs)/exams" asChild>
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIconBoxSecondary}>
+                  <Ionicons name="school-outline" size={28} color={GOLD} />
+                </View>
+                <Text style={styles.actionText}>Évaluations</Text>
+              </TouchableOpacity>
+            </Link>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setAddClassVisible(true)}>
               <View style={styles.actionIconBoxSecondary}>
-                <Ionicons name="chatbubbles-outline" size={28} color={GOLD} />
+                <Ionicons name="add-circle-outline" size={28} color={GOLD} />
               </View>
-              <Text style={styles.actionText}>Messages</Text>
+              <Text style={styles.actionText}>+ Classe</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -220,8 +245,6 @@ export default function HomeScreen() {
             ))
           )}
         </View>
-        
-        
       </ScrollView>
 
       {/* Add Class Modal */}
@@ -308,22 +331,6 @@ const styles = StyleSheet.create({
   iconBtn: {
     position: 'relative',
   },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: GOLD,
-    borderRadius: 10,
-    width: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: BLACK,
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,7 +356,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statsScroll: {
-    marginTop: -30, // Overlap the header curve
+    marginTop: -30,
   },
   statsContainer: {
     paddingHorizontal: spacing.lg,
@@ -402,6 +409,7 @@ const styles = StyleSheet.create({
     color: WHITE,
     fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: spacing.md,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -476,31 +484,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: GOLD,
   },
-  docIconDOC: {
-    width: 46,
-    height: 56,
-    backgroundColor: 'rgba(50, 150, 250, 0.15)',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#3296FA',
-  },
-  docIconPPT: {
-    width: 46,
-    height: 56,
-    backgroundColor: 'rgba(250, 100, 50, 0.15)',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FA6432',
-  },
-  docIconText: {
-    color: WHITE,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
   docInfo: {
     flex: 1,
     marginLeft: spacing.md,
@@ -514,10 +497,6 @@ const styles = StyleSheet.create({
   docClass: {
     color: MUTED,
     fontSize: 13,
-  },
-  docDate: {
-    color: MUTED,
-    fontSize: 12,
   },
   modalOverlay: {
     flex: 1,

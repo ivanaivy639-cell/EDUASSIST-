@@ -58,7 +58,6 @@ export default function DocumentsScreen() {
           if (docsRes?.data?.success && Array.isArray(docsRes.data.data)) {
             setDocuments(docsRes.data.data);
           } else {
-            // Fallback mock documents if none returned yet
             setDocuments([]);
           }
 
@@ -291,7 +290,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justify.content: 'center',
     paddingVertical: 60,
   },
   emptyTitle: {

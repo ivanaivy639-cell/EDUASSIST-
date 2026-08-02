@@ -21,6 +21,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/register', [TeacherController::class, 'store']);
         });
 
+        Route::get('/documents', [\App\Http\Controllers\DocumentController::class, 'index']);
+
         Route::prefix('ai')->group(function () {
             Route::post('/generate', [AiController::class, 'generate']);
             Route::get('/agents', [AiController::class, 'agents']);
