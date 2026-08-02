@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
     paddingVertical: 60,
   },
   emptyTitle: {
