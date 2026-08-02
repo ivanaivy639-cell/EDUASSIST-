@@ -278,9 +278,13 @@ class AiService
      */
     private function enrichInitialMessage(Teacher $teacher, array $data): string
     {
-        $userMatiere = !empty($data['matiere']) ? trim($data['matiere']) : null;
-        $userNiveau  = !empty($data['niveau']) ? trim($data['niveau']) : null;
-        $ecole       = 'Cameroun';
+        $userMatiere   = !empty($data['matiere']) ? trim($data['matiere']) : null;
+        $userNiveau    = !empty($data['niveau']) ? trim($data['niveau']) : null;
+        $userTheme     = !empty($data['theme']) ? trim($data['theme']) : (!empty($data['message']) ? trim($data['message']) : null);
+        $userDuree     = !empty($data['duree']) ? trim($data['duree']) : null;
+        $userObjectifs = !empty($data['objectifs']) ? trim($data['objectifs']) : null;
+        $userConsignes = !empty($data['consignes']) ? trim($data['consignes']) : null;
+        $ecole         = 'Cameroun';
 
         $matiere = $userMatiere;
         $niveau  = $userNiveau;
@@ -323,23 +327,32 @@ class AiService
 
         $niveau  = $niveau ?: 'Général';
         $matiere = $matiere ?: 'Général';
+        $theme   = $userTheme ?: 'Général';
 
         // 4. Détection du cycle scolaire
         $cycleInfo = $this->detectCycle($niveau);
 
-        $themeRequired = !empty($data['theme']) ? trim($data['theme']) : (!empty($data['message']) ? trim($data['message']) : 'Général');
-
         $lines = [
             "=================================================================",
-            "DIRECTIVE STRICTE DU CONTEXTE PÉDAGOGIQUE :",
-            "TU DOIS ADAPTER CE COURS ET TOUS SES EXERCICES STRICTEMENT SELON :",
+            "=== CAHIER DES CHARGES PÉDAGOGIQUE STRICT (À RESPECTER DE MANIÈRE ABSOLUE) ===",
             "=================================================================",
-            "- CLASSE / NIVEAU      : {$niveau}",
-            "- MATIÈRE DU COURS     : {$matiere}",
-            "- THÈME / SUJET OBLIG. : {$themeRequired}",
-            "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
-            "- Établissement        : {$ecole}",
+            "- MATIÈRE DU COURS           : {$matiere}",
+            "- CLASSE / NIVEAU            : {$niveau}",
+            "- THÈME / SUJET PRINCIPAL    : {$theme}",
         ];
+
+        if ($userDuree) {
+            $lines[] = "- DURÉE ESTIMÉE              : {$userDuree}";
+        }
+        if ($userObjectifs) {
+            $lines[] = "- OBJECTIFS PÉDAGOGIQUES     : {$userObjectifs}";
+        }
+        if ($userConsignes) {
+            $lines[] = "- CONSIGNES ET CONTRAINTES   : {$userConsignes}";
+        }
+
+        $lines[] = "- Enseignant                 : {$teacher->nom} {$teacher->prenom}";
+        $lines[] = "- Établissement              : {$ecole}";
 
         if (!empty($data['chapter_id'])) {
             $chapter = \App\Models\Chapter::find($data['chapter_id']);
