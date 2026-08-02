@@ -202,12 +202,9 @@ class AiService
             $latestMessage .= $fileInfo;
         }
 
-        // Inject strict formatting rule directly into the final user message so the AI can't ignore it
-        $strictReminder = "\n\n[RAPPEL STRICT DU SYSTÈME] : NE DONNE AUCUNE RÉPONSE EN DESSOUS DES QUESTIONS. Tu dois écrire tous les exercices à la suite, de manière vierge. Puis SEULEMENT TOUT À LA FIN du texte, tu dois écrire la balise [SECTION_CORRIGE] et donner les réponses. C'est un impératif technique absolu.";
-        
         $messages[] = [
             'role'    => 'user',
-            'content' => $latestMessage . $strictReminder,
+            'content' => $latestMessage,
         ];
 
         return [
@@ -298,72 +295,70 @@ class AiService
                 }
                 if (!$niveau && $course->teacherClass) {
                     $classObj = $course->teacherClass;
-                    $niveau = $classObj->level ? $classObj->level . " (" . $classObj->name . ")" : $classObj->name;
+                    $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
                 }
             }
         }
 
-        // 2. Si une classe spécifique est sélectionnée (class_id) : charger STRICTEMENT cette classe
+        // 2. Si une classe spécifique est sélectionnée (class_id)
         if (!empty($data['class_id'])) {
             $activeClass = \App\Models\TeacherClass::with('courses')->find($data['class_id']);
             if ($activeClass) {
                 if (!$niveau) {
-                    $niveau = $activeClass->level ? $activeClass->level . " (" . $activeClass->name . ")" : $activeClass->name;
+                    $niveau = $activeClass->level ? $activeClass->level . " (Classe: " . $activeClass->name . ")" : $activeClass->name;
                 }
-                if (!$matiere && $activeClass->courses->count() > 0) {
+                if (!$matiere && $activeClass->courses->count() === 1) {
                     $matiere = $activeClass->courses->first()->name;
                 }
             }
         }
 
-        // 3. Repli général UNIQUEMENT si aucun class_id ni course_id n'est fourni
+        // 3. Repli automatique UNIQUEMENT si l'enseignant n'a qu'UNE SEULE classe et un SEUL cours
         if (empty($data['class_id']) && empty($data['course_id'])) {
-            if (!$niveau || !$matiere) {
-                $defaultClass = $teacher->classes()->with('courses')->first();
-                if ($defaultClass) {
-                    if (!$niveau) {
-                        $niveau = $defaultClass->level ? $defaultClass->level . " (" . $defaultClass->name . ")" : $defaultClass->name;
-                    }
-                    if (!$matiere && $defaultClass->courses->count() > 0) {
-                        $matiere = $defaultClass->courses->first()->name;
+            if (!$niveau) {
+                $classes = $teacher->classes()->get();
+                if ($classes->count() === 1) {
+                    $singleClass = $classes->first();
+                    $niveau = $singleClass->level ? $singleClass->level . " (Classe: " . $singleClass->name . ")" : $singleClass->name;
+                    if (!$matiere) {
+                        $courses = $singleClass->courses()->get();
+                        if ($courses->count() === 1) {
+                            $matiere = $courses->first()->name;
+                        }
                     }
                 }
             }
         }
 
-        $niveau  = $niveau ?: 'Général';
-        $matiere = $matiere ?: 'Général';
-        $theme   = $userTheme ?: 'Général';
-
-        // 4. Détection du cycle scolaire
-        $cycleInfo = $this->detectCycle($niveau);
-
         $lines = [
-            "=================================================================",
-            "=== CAHIER DES CHARGES PÉDAGOGIQUE STRICT (À RESPECTER DE MANIÈRE ABSOLUE) ===",
-            "=================================================================",
-            "- MATIÈRE DU COURS           : {$matiere}",
-            "- CLASSE / NIVEAU            : {$niveau}",
-            "- THÈME / SUJET PRINCIPAL    : {$theme}",
+            "Contexte du cours :",
+            "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
+            "- École                : {$ecole}",
         ];
 
+        if (!empty($niveau)) {
+            $lines[] = "- Classe / Niveau      : {$niveau}";
+        }
+        if (!empty($matiere)) {
+            $lines[] = "- Matière              : {$matiere}";
+        }
+        if (!empty($userTheme)) {
+            $lines[] = "- Thème / Sujet        : {$userTheme}";
+        }
         if ($userDuree) {
-            $lines[] = "- DURÉE ESTIMÉE              : {$userDuree}";
+            $lines[] = "- Durée                : {$userDuree}";
         }
         if ($userObjectifs) {
-            $lines[] = "- OBJECTIFS PÉDAGOGIQUES     : {$userObjectifs}";
+            $lines[] = "- Objectifs            : {$userObjectifs}";
         }
         if ($userConsignes) {
-            $lines[] = "- CONSIGNES ET CONTRAINTES   : {$userConsignes}";
+            $lines[] = "- Consignes            : {$userConsignes}";
         }
-
-        $lines[] = "- Enseignant                 : {$teacher->nom} {$teacher->prenom}";
-        $lines[] = "- Établissement              : {$ecole}";
 
         if (!empty($data['chapter_id'])) {
             $chapter = \App\Models\Chapter::find($data['chapter_id']);
             if ($chapter) {
-                $lines[] = "- Chapitre actuel      : {$chapter->title}";
+                $lines[] = "- Chapitre             : {$chapter->title}";
             }
         }
 
