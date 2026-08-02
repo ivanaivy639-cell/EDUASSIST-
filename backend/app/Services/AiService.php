@@ -278,51 +278,32 @@ class AiService
      */
     private function enrichInitialMessage(Teacher $teacher, array $data): string
     {
-        // Priorité absolue aux données saisies pour la demande actuelle
-        $matiere = !empty($data['matiere']) ? trim($data['matiere']) : ($teacher->matiere ?? null);
-        $niveau  = !empty($data['niveau']) ? trim($data['niveau']) : ($teacher->classe ?? null);
-        $ecole   = $teacher->ecole ?? 'Cameroun';
+        // Matière et niveau définis exclusivement selon la saisie ou le cours sélectionné
+        $matiere = !empty($data['matiere']) ? trim($data['matiere']) : null;
+        $niveau  = !empty($data['niveau']) ? trim($data['niveau']) : null;
+        $ecole   = 'Cameroun';
 
-        $uniqueClass = null;
-
-        // Tenter d'inférer uniquement si aucune matière ni niveau n'est fourni
-        if (!$niveau) {
-            $classes = $teacher->classes()->get();
-            if ($classes->count() > 0) {
-                $uniqueClass = $classes->first();
-                $niveau = $uniqueClass->level ? $uniqueClass->level . " (Classe: " . $uniqueClass->name . ")" : $uniqueClass->name;
-            }
-        }
-
-        if (!$matiere && $uniqueClass) {
-            $courses = $uniqueClass->courses()->get();
-            if ($courses->count() > 0) {
-                $matiere = $courses->first()->name;
-            }
-        }
-        
-        $niveau = $niveau ?: 'Général';
-        $matiere = $matiere ?: 'Général';
-
-        // Si l'utilisateur a sélectionné une classe et un cours spécifiques
-        if (!empty($data['class_id'])) {
-            $class = \App\Models\TeacherClass::find($data['class_id']);
-            if ($class && $class->teacher_id === $teacher->id) {
-                $niveau = $class->level ? $class->level . " (Classe: " . $class->name . ")" : $class->name;
-            }
-        }
-
-        // Si l'utilisateur a sélectionné un cours spécifique
+        // Si un cours spécifique a été sélectionné
         if (!empty($data['course_id'])) {
             $course = \App\Models\Course::with('teacherClass')->find($data['course_id']);
-            if ($course && (!isset($class) || $course->teacher_class_id === $class->id)) {
+            if ($course) {
                 $matiere = $course->name;
-                if (!isset($class) && $course->teacherClass) {
-                    $class = $course->teacherClass;
-                    $niveau = $class->level ? $class->level . " (Classe: " . $class->name . ")" : $class->name;
+                if (!$niveau && $course->teacherClass) {
+                    $niveau = $course->teacherClass->name;
                 }
             }
         }
+
+        // Si une classe spécifique a été sélectionnée
+        if (!empty($data['class_id']) && !$niveau) {
+            $class = \App\Models\TeacherClass::find($data['class_id']);
+            if ($class && $class->teacher_id === $teacher->id) {
+                $niveau = $class->name;
+            }
+        }
+
+        $niveau  = $niveau ?: 'Général';
+        $matiere = $matiere ?: 'Général';
         
         // Détection du cycle
         $cycleInfo = $this->detectCycle($niveau);
