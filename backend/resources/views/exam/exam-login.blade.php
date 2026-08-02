@@ -4,118 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>{{ $exam->title }} — EduAssist Évaluation</title>
+    <title>{{ $exam->title }} — Épreuve Académique</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --primary: #2B6CB0;
-            --primary-dark: #2C5282;
-            --dark: #121212;
-            --dark-card: #1A1A1A;
-            --dark-field: #242424;
-            --border: #333333;
-            --muted: #A0AEC0;
-            --white: #FFFFFF;
-            --red: #C53030;
-            --green: #2F855A;
+            --primary: #1E40AF;
+            --primary-hover: #1E3A8A;
+            --bg-page: #F4F6F9;
+            --card-bg: #FFFFFF;
+            --text-dark: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --input-bg: #F8FAFC;
+            --input-border: #CBD5E1;
+            --accent-gold: #D4AF37;
+            --red-alert: #DC2626;
+            --blue-info-bg: #EFF6FF;
+            --blue-info-border: #BFDBFE;
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--dark);
-            color: var(--white);
+            background: var(--bg-page);
+            color: var(--text-dark);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow-x: hidden;
-            overflow-y: auto;
-            padding: 40px 20px;
+            padding: 24px 16px;
         }
 
-        /* No animated background */
-        
         .login-container {
             width: 100%;
-            max-width: 500px;
-            margin: auto;
+            max-width: 520px;
         }
 
         .login-card {
-            background: var(--dark-card);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 40px 32px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px 36px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
         }
 
-        /* Logo / Header */
+        /* Header / Logo */
         .logo-section {
             text-align: center;
-            margin-bottom: 32px;
-            border-bottom: 2px solid var(--primary);
+            margin-bottom: 28px;
             padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .badge-academic {
+            display: inline-block;
+            background: #F1F5F9;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
         }
 
         .logo-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--white);
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 6px;
         }
 
         .logo-subtitle {
-            font-size: 13px;
-            color: var(--muted);
+            font-size: 14px;
+            color: var(--text-muted);
             font-weight: 500;
-            text-transform: uppercase;
         }
 
-        /* Exam Info */
+        /* Exam Info Box */
         .exam-info {
-            background: var(--dark-field);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 16px 20px;
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
             margin-bottom: 28px;
         }
 
         .exam-info-title {
-            font-size: 15px;
+            font-size: 17px;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 12px;
-            text-transform: uppercase;
+            margin-bottom: 14px;
         }
 
         .exam-info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 0;
-        }
-
-        .exam-info-label {
-            font-size: 13px;
-            color: var(--muted);
-            font-weight: 600;
-        }
-
-        .exam-info-value {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--white);
+            padding: 8px 0;
+            font-size: 14px;
         }
 
         .exam-info-row + .exam-info-row {
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            margin-top: 6px;
-            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .exam-info-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .exam-info-value {
+            font-weight: 700;
+            color: var(--text-dark);
         }
 
         /* Form */
@@ -125,101 +130,116 @@
 
         .form-label {
             display: block;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
-            color: var(--white);
+            color: var(--text-dark);
             margin-bottom: 8px;
-            letter-spacing: 0.3px;
         }
 
         .form-input {
             width: 100%;
-            padding: 12px 16px;
-            background: var(--dark-field);
-            border: 1px solid var(--border);
-            border-radius: 4px;
+            padding: 14px 16px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
             font-size: 15px;
             font-family: 'Inter', sans-serif;
-            color: var(--white);
+            color: var(--text-dark);
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
 
         .form-input::placeholder {
-            color: #666;
+            color: #94A3B8;
         }
 
         .form-input:focus {
+            background: #FFFFFF;
             border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
         }
 
-        /* Warning box */
-        .warning-box {
-            background: rgba(197, 48, 48, 0.1);
-            border-left: 4px solid var(--red);
-            padding: 14px 16px;
+        /* Instructions Box */
+        .instructions-box {
+            background: var(--blue-info-bg);
+            border: 1px solid var(--blue-info-border);
+            border-radius: 10px;
+            padding: 16px;
             margin-bottom: 24px;
         }
 
-        .warning-text {
-            font-size: 12px;
-            color: #FC8181;
-            line-height: 1.6;
+        .instructions-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        /* Submit button */
+        .instructions-list {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+            margin-left: 18px;
+        }
+
+        /* Submit Button */
         .submit-btn {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background: var(--primary);
             border: none;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 16px;
             font-weight: 700;
             font-family: 'Inter', sans-serif;
-            color: var(--white);
+            color: #FFFFFF;
             cursor: pointer;
-            transition: background 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            transition: background 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
         }
 
         .submit-btn:hover {
-            background: var(--primary-dark);
+            background: var(--primary-hover);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.99);
         }
 
         .submit-btn:disabled {
-            background: var(--border);
-            color: var(--muted);
+            background: #94A3B8;
             cursor: not-allowed;
+            box-shadow: none;
         }
 
         /* Error message */
         .error-msg {
-            background: rgba(229, 62, 62, 0.1);
-            border: 1px solid rgba(229, 62, 62, 0.3);
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            font-size: 13px;
-            color: var(--red);
+            background: #FEF2F2;
+            border: 1px solid #FCA5A5;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--red-alert);
             text-align: center;
+            font-weight: 500;
         }
 
         /* Footer */
         .footer {
             text-align: center;
             margin-top: 24px;
-            font-size: 11px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
-        /* Responsive */
-        @media (max-width: 520px) {
+        @media (max-width: 480px) {
             .login-card { padding: 28px 20px; }
-            .logo-title { font-size: 18px; }
+            .logo-title { font-size: 20px; }
         }
     </style>
 </head>
@@ -227,8 +247,9 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo-section">
-                <div class="logo-title">Portail d'Évaluation</div>
-                <div class="logo-subtitle">Accès Sécurisé — Épreuve Académique</div>
+                <span class="badge-academic">Épreuve d'évaluation</span>
+                <h1 class="logo-title">Identification de l'Élève</h1>
+                <p class="logo-subtitle">Veuillez renseigner vos informations pour débuter l'épreuve</p>
             </div>
 
             <div class="exam-info">
@@ -238,7 +259,7 @@
                     <span class="exam-info-value">{{ $teacher_name }}</span>
                 </div>
                 <div class="exam-info-row">
-                    <span class="exam-info-label">Durée</span>
+                    <span class="exam-info-label">Durée allouée</span>
                     <span class="exam-info-value">{{ $exam->duration_minutes }} minutes</span>
                 </div>
                 <div class="exam-info-row">
@@ -259,7 +280,7 @@
                 @csrf
 
                 <div class="form-group">
-                    <label class="form-label" for="student_name">Nom complet</label>
+                    <label class="form-label" for="student_name">Nom et Prénom complets</label>
                     <input
                         type="text"
                         class="form-input"
@@ -273,7 +294,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="student_matricule">Matricule</label>
+                    <label class="form-label" for="student_matricule">Matricule Élève</label>
                     <input
                         type="text"
                         class="form-input"
@@ -287,36 +308,35 @@
                     >
                 </div>
 
-                <div class="warning-box">
-                    <span class="warning-text">
-                        <strong>INSTRUCTIONS STRICTES :</strong><br>
-                        - Le temps imparti s'écoule de manière continue.<br>
-                        - Toute sortie de cette interface sera enregistrée (Tolérance : 2 sorties).<br>
-                        - Les fonctions de copie et de collage sont bloquées.<br>
-                        - La tricherie entraîne l'annulation automatique de la copie.
-                    </span>
+                <div class="instructions-box">
+                    <div class="instructions-header">
+                        📌 Instructions importantes
+                    </div>
+                    <ul class="instructions-list">
+                        <li>Le décompte du temps démarre dès la validation.</li>
+                        <li>Ne fermez pas et ne quittez pas la page pendant l'épreuve.</li>
+                        <li>Validez vos réponses avant la fin du temps imparti.</li>
+                    </ul>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    Accéder à l'épreuve
+                    Commencer l'épreuve
                 </button>
             </form>
 
             <div class="footer">
-                SYSTÈME D'ÉVALUATION SÉCURISÉ
+                EduAssist — Plateforme d'Évaluation Académique
             </div>
         </div>
     </div>
 
     <script>
-        // Empêcher la soumission multiple
         document.getElementById('loginForm').addEventListener('submit', function() {
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.textContent = '⏳ Chargement...';
+            btn.textContent = '⏳ Ouverture de l\'épreuve...';
         });
 
-        // Auto-uppercase pour le matricule
         document.getElementById('student_matricule').addEventListener('input', function(e) {
             e.target.value = e.target.value.toUpperCase();
         });
