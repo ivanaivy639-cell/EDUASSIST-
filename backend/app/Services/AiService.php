@@ -244,10 +244,12 @@ class AiService
             '2. OBJECTIFS (Général et Spécifiques)',
             '3. PRÉREQUIS',
             '4. INTRODUCTION (Mise en situation, Problématique)',
-            '5. DÉVELOPPEMENT DU    /**
-     * Résout la hiérarchie exacte (Enseignant -> Classe -> Cours -> Chapitre -> Leçon)
-     * quel que soit le point d'entrée ou la méthode de génération.
-     */
+            '5. DÉVELOPPEMENT DU COURS (Le cœur de la leçon, avec des sous-parties numérotées, des définitions claires, des exemples locaux, et des schémas/images pollinaitons)',
+            '6. CONCLUSION (Résumé des points clés)',
+            '7. EXERCICES D\'APPLICATION (Avec leurs corrigés complets)',
+            '8. ACTIVITÉS DE RECHERCHE / DEVOIRS',
+        ]);
+    }
     private function resolveContextHierarchy(Teacher $teacher, array $data): array
     {
         $userMatiere   = !empty($data['matiere']) ? trim($data['matiere']) : null;
@@ -406,21 +408,6 @@ class AiService
         }
 
         $typeInstruction = $this->formatInstructions($type, (string) $ctx['niveau']);
-
-        $lines = array_merge($lines, [
-            "",
-            "=== DIRECTIVES DE FORMATAGE SPÉCIFIQUES ===",
-            $typeInstruction,
-            "",
-            "=== MA DEMANDE ACTUELLE ===",
-            $data['message'] ?? ''
-        ]);
-
-        return implode("\n", $lines);
-    }         $type = 'chat';
-        }
-
-        $typeInstruction = $this->formatInstructions($type, (string) $niveau);
 
         $lines = array_merge($lines, [
             "",
