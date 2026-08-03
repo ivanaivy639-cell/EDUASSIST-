@@ -36,6 +36,7 @@ const SEPARATOR_TAG = '[SECTION_CORRIGE]';
 
 export const CreateExamScreen = React.memo(() => {
   const [title, setTitle] = useState('');
+  const [classe, setClasse] = useState('');
   const [rawContent, setRawContent] = useState('');
   const [duration, setDuration] = useState('60');
   const [maxScore, setMaxScore] = useState('20');
@@ -57,6 +58,7 @@ export const CreateExamScreen = React.memo(() => {
         if (pendingDataStr) {
           const pendingData = JSON.parse(pendingDataStr);
           if (pendingData.title) setTitle(pendingData.title);
+          if (pendingData.classe || pendingData.niveau) setClasse(pendingData.classe || pendingData.niveau);
           if (pendingData.content) setRawContent(pendingData.content);
           // Ne pas supprimer immédiatement pour éviter les bugs avec React Strict Mode
           // On le supprime dans un setTimeout ou au démontage
@@ -112,6 +114,7 @@ export const CreateExamScreen = React.memo(() => {
 
       const res = await ExamService.create({
         title: title.trim(),
+        classe: classe.trim() || undefined,
         content,
         answer_key: answerKey,
         duration_minutes: dur,
@@ -262,6 +265,19 @@ export const CreateExamScreen = React.memo(() => {
               value={title}
               onChangeText={setTitle}
               placeholder="Ex: Évaluation de Mathématiques — Chapitre 3"
+              placeholderTextColor="#555"
+              maxLength={255}
+            />
+          </View>
+
+          {/* Classe / Niveau */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Classe / Niveau (ex: CM2, 3ème A, Terminale S)</Text>
+            <TextInput
+              style={styles.input}
+              value={classe}
+              onChangeText={setClasse}
+              placeholder="Ex: CM2, 3ème A, Terminale S"
               placeholderTextColor="#555"
               maxLength={255}
             />

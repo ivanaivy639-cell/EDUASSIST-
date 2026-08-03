@@ -417,6 +417,9 @@
     <header class="exam-header">
         <div class="header-left">
             <span class="exam-badge">Épreuve</span>
+            @if(!empty($exam->classe))
+                <span class="exam-badge" style="background:#D1E7DD; color:#0F5132; margin-left: 4px;">{{ $exam->classe }}</span>
+            @endif
             <span class="exam-title-header" title="{{ $exam->title }}">{{ $exam->title }}</span>
         </div>
 

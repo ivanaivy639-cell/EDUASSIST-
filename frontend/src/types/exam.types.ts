@@ -1,6 +1,7 @@
 export interface Exam {
   id: number;
   title: string;
+  classe?: string | null;
   token: string;
   public_url: string;
   duration_minutes: number;
@@ -17,6 +18,7 @@ export interface Exam {
 export interface ExamDetail {
   id: number;
   title: string;
+  classe?: string | null;
   content: string;
   answer_key: string | null;
   token: string;
@@ -69,6 +71,7 @@ export interface ExamResultsStats {
 
 export interface ExamCreateRequest {
   title: string;
+  classe?: string;
   content: string;
   answer_key?: string;
   duration_minutes: number;

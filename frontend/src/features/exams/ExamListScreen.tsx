@@ -146,6 +146,11 @@ export const ExamListScreen = React.memo(() => {
               <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
             </View>
           </View>
+          {exam.classe ? (
+            <View style={{ backgroundColor: 'rgba(212,175,55,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, alignSelf: 'flex-start', marginTop: 4, marginBottom: 4 }}>
+              <Text style={{ color: GOLD, fontSize: 12, fontWeight: '700' }}>🏫 {exam.classe}</Text>
+            </View>
+          ) : null}
           <Text style={styles.cardDate}>{formatDate(exam.created_at)}</Text>
         </View>
 

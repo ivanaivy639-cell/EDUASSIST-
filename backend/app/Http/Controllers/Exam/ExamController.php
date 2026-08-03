@@ -31,6 +31,7 @@ class ExamController extends Controller
                 return [
                     'id'                => $exam->id,
                     'title'             => $exam->title,
+                    'classe'            => $exam->classe,
                     'token'             => $exam->token,
                     'public_url'        => $exam->public_url,
                     'duration_minutes'  => $exam->duration_minutes,
@@ -75,6 +76,7 @@ class ExamController extends Controller
             'duration_minutes' => 'required|integer|min:5|max:480',
             'max_score'        => 'nullable|integer|min:1',
             'course_id'        => 'nullable|integer',
+            'classe'           => 'nullable|string|max:255',
             'is_active'        => 'nullable|boolean',
             'exam_date'        => 'nullable|date',
             'start_time'       => 'nullable|date_format:H:i',
@@ -104,6 +106,7 @@ class ExamController extends Controller
         $exam = Exam::create([
             'teacher_id'       => $teacher->id,
             'course_id'        => $validated['course_id'] ?? null,
+            'classe'           => $validated['classe'] ?? null,
             'title'            => $validated['title'],
             'content'          => $validated['content'],
             'answer_key'       => $validated['answer_key'] ?? null,
@@ -171,6 +174,7 @@ class ExamController extends Controller
                 'exam'        => [
                     'id'               => $exam->id,
                     'title'            => $exam->title,
+                    'classe'           => $exam->classe,
                     'content'          => $exam->content,
                     'answer_key'       => $exam->answer_key,
                     'token'            => $exam->token,
@@ -239,6 +243,7 @@ class ExamController extends Controller
 
         $validated = $request->validate([
             'title'            => 'sometimes|string|max:255',
+            'classe'           => 'sometimes|nullable|string|max:255',
             'is_active'        => 'sometimes|boolean',
             'duration_minutes' => 'sometimes|integer|min:5|max:480',
             'max_score'        => 'sometimes|integer|min:1|max:100',
