@@ -91,6 +91,20 @@ export const AiAssistantScreen = React.memo(({
 }: AiAssistantProps) => {
   const { state } = useAuth();
   
+  const routeParams = useLocalSearchParams<{
+    class_id?: string;
+    course_id?: string;
+    chapterId?: string;
+    lessonId?: string;
+    mode?: 'dashboard' | 'lesson';
+  }>();
+
+  const activeClassId = class_id || routeParams.class_id;
+  const activeCourseId = course_id || routeParams.course_id;
+  const activeChapterId = chapterId || routeParams.chapterId;
+  const activeLessonId = lessonId || routeParams.lessonId;
+  const activeMode = mode || routeParams.mode || 'dashboard';
+
   const [messages, setMessages] = useState<ChatBubble[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -371,13 +385,13 @@ export const AiAssistantScreen = React.memo(({
       const response = await AiService.generateContent({
         message: text,
         type: explicitType,
-        mode: mode,
+        mode: activeMode,
         history: history.length > 0 ? history : undefined,
         agent: agent || undefined,
-        class_id: class_id ? parseInt(class_id, 10) : undefined,
-        course_id: course_id ? parseInt(course_id, 10) : undefined,
-        chapter_id: chapterId ? parseInt(chapterId, 10) : undefined,
-        lesson_id: lessonId ? parseInt(lessonId, 10) : undefined,
+        class_id: activeClassId ? parseInt(activeClassId, 10) : undefined,
+        course_id: activeCourseId ? parseInt(activeCourseId, 10) : undefined,
+        chapter_id: activeChapterId ? parseInt(activeChapterId, 10) : undefined,
+        lesson_id: activeLessonId ? parseInt(activeLessonId, 10) : undefined,
         file_data: attachedFile?.base64,
         file_name: attachedFile?.name,
         file_type: attachedFile?.type,
