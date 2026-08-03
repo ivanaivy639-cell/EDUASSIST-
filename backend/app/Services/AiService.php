@@ -474,10 +474,7 @@ class AiService
      */
     private function buildLocalResponse(Teacher $teacher, array $data, bool $remoteFailed = false): array
     {
-        $content = implode("\n", [
-            "HELLO, PATIENTE UN TOUT PETIT PEU.",
-            "Veuillez vérifier votre connexion internet `.env`."
-        ]);
+        $content = "Désolé, le service d'IA rencontre un ralentissement temporaire du réseau. Veuillez re-cliquer sur Générer dans quelques instants.";
 
         return [
             'content'      => $content,
