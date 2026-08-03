@@ -23,7 +23,7 @@ return [
         'api_key' => env('GROQ_API_KEY') ?: ('gsk_' . 'PBfmeS6Mlej8Jp6' . 'jwp3rWGdyb3FYU3' . 'XL2H1pAq7X12pfgqCsXmSw'),
         'endpoint' => 'https://api.groq.com/openai/v1/chat/completions',
         'default_model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
-        'timeout' => 60,
+        'timeout' => 45,
         'temperature' => 0.7,
         'max_tokens' => 4096,
     ],
@@ -33,31 +33,30 @@ return [
 
     /*
      * Forfaits (plans tarifaires).
-     * Tous les modèles valides sont débloqués.
      */
     'plans' => [
         'free' => [
             'label' => 'Gratuit',
             'price' => 0,
             'default_agent' => 'llama70b',
-            'agents' => ['llama70b', 'llama8b', 'qwen', 'compound'],
+            'agents' => ['llama70b', 'llama8b'],
         ],
         'standard' => [
             'label' => 'Standard',
             'price' => 9.99,
             'default_agent' => 'llama70b',
-            'agents' => ['llama70b', 'llama8b', 'qwen', 'compound'],
+            'agents' => ['llama70b', 'llama8b'],
         ],
         'premium' => [
             'label' => 'Premium',
             'price' => 29.99,
             'default_agent' => 'llama70b',
-            'agents' => ['llama70b', 'llama8b', 'qwen', 'compound'],
+            'agents' => ['llama70b', 'llama8b'],
         ],
     ],
 
     /*
-     * Agents (modèles Groq actifs) disponibles.
+     * Agents (modèles Groq actifs ultra-rapides) disponibles.
      */
     'agents' => [
         'llama70b' => [
@@ -69,16 +68,6 @@ return [
             'label' => 'Llama 3.1 8B (Rapide)',
             'model' => 'llama-3.1-8b-instant',
             'description' => 'Modèle ultra-rapide pour des réponses et exercices instantanés.',
-        ],
-        'qwen' => [
-            'label' => 'Qwen 3.6 27B',
-            'model' => 'qwen/qwen3.6-27b',
-            'description' => 'Excellente maîtrise du français et des raisonnements académiques.',
-        ],
-        'compound' => [
-            'label' => 'Groq Compound',
-            'model' => 'groq/compound',
-            'description' => 'Système IA avancé avec recherche web et raisonnement multi-étapes.',
         ],
     ],
 

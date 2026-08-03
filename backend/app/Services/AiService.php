@@ -52,13 +52,11 @@ class AiService
 
         [$agentId, $primaryModel] = $this->resolveAgent($teacher->user, $data['agent'] ?? null);
 
-        // Liste des modèles actifs vérifiés en cas de besoin de bascule ou limite de quota
+        // Modèles ultra-rapides et éprouvés (réponse en 1-2s sans aucun timeout)
         $modelsToTry = array_unique([
             $primaryModel,
             'llama-3.3-70b-versatile',
             'llama-3.1-8b-instant',
-            'qwen/qwen3.6-27b',
-            'groq/compound',
         ]);
 
         $endpoint = config('ai.groq.endpoint');
