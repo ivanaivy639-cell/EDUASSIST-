@@ -87,16 +87,8 @@ class AiService
                     }
                 }
 
-                if ($response->status() === 429 || $response->status() === 413) {
-                    Log::info("Groq 429 quota reached on model {$currentModel}, trying next model...");
-                    continue;
-                }
-
-                Log::warning('Groq generation failed for model', [
-                    'status'     => $response->status(),
-                    'body'       => Str::limit($response->body(), 500),
-                    'model'      => $currentModel,
-                ]);
+                Log::warning("Groq model {$currentModel} failed with status {$response->status()}: " . Str::limit($response->body(), 300));
+                continue;
             } catch (\Throwable $e) {
                 Log::warning("Exception trying Groq model {$currentModel}: " . $e->getMessage());
                 continue;
@@ -328,9 +320,11 @@ class AiService
 
         if (!empty($niveau)) {
             $lines[] = "- Classe / Niveau      : {$niveau}";
+            $lines[] = "⚠️ EXIGENCE DE CLASSE : Le contenu généré doit être STRICTEMENT adapté aux compétences et au programme de la classe : {$niveau}.";
         }
         if (!empty($matiere)) {
             $lines[] = "- Matière              : {$matiere}";
+            $lines[] = "⚠️ EXIGENCE DE MATIÈRE : Le cours doit traiter EXCLUSIVEMENT de la matière : {$matiere}. Ne fais aucun hors-sujet ni mélange avec d'autres disciplines.";
         }
         if (!empty($userTheme)) {
             $lines[] = "- Thème / Sujet        : {$userTheme}";
