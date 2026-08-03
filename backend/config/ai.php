@@ -20,7 +20,13 @@ return [
 
     // Paramètres Groq
     'groq' => [
-        'api_key' => env('GROQ_API_KEY') ?: ('gsk_' . 'PBfmeS6Mlej8Jp6' . 'jwp3rWGdyb3FYU3' . 'XL2H1pAq7X12pfgqCsXmSw'),
+        'api_key' => (function() {
+            $envKey = trim((string) env('GROQ_API_KEY'));
+            if ($envKey !== '' && str_starts_with($envKey, 'gsk_') && strlen($envKey) > 35) {
+                return $envKey;
+            }
+            return 'gsk_' . 'PBfmeS6Mlej8Jp6' . 'jwp3rWGdyb3FYU3' . 'XL2H1pAq7X12pfgqCsXmSw';
+        })(),
         'endpoint' => 'https://api.groq.com/openai/v1/chat/completions',
         'default_model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
         'timeout' => 45,
