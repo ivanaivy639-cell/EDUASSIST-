@@ -265,11 +265,50 @@ class AiService
         $userConsignes = !empty($data['consignes']) ? trim($data['consignes']) : null;
         $ecole         = 'Cameroun';
 
-        $matiere = $userMatiere;
-        $niveau  = $userNiveau;
+        $matiere      = $userMatiere;
+        $niveau       = $userNiveau;
+        $chapterTitle = null;
+        $lessonTitle  = null;
 
-        // 1. Si un cours spécifique est sélectionné (course_id)
-        if (!empty($data['course_id'])) {
+        // 1. Si une leçon spécifique est sélectionnée (lesson_id)
+        if (!empty($data['lesson_id'])) {
+            $lesson = \App\Models\Lesson::with('chapter.course.teacherClass')->find($data['lesson_id']);
+            if ($lesson) {
+                $lessonTitle = $lesson->title;
+                if ($lesson->chapter) {
+                    $chapterTitle = $lesson->chapter->title;
+                    if ($lesson->chapter->course) {
+                        $courseObj = $lesson->chapter->course;
+                        if (!$matiere) {
+                            $matiere = $courseObj->name;
+                        }
+                        if (!$niveau && $courseObj->teacherClass) {
+                            $classObj = $courseObj->teacherClass;
+                            $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
+                        }
+                    }
+                }
+            }
+        }
+        // 2. Si un chapitre spécifique est sélectionné (chapter_id)
+        elseif (!empty($data['chapter_id'])) {
+            $chapter = \App\Models\Chapter::with('course.teacherClass')->find($data['chapter_id']);
+            if ($chapter) {
+                $chapterTitle = $chapter->title;
+                if ($chapter->course) {
+                    $courseObj = $chapter->course;
+                    if (!$matiere) {
+                        $matiere = $courseObj->name;
+                    }
+                    if (!$niveau && $chapter->course->teacherClass) {
+                        $classObj = $chapter->course->teacherClass;
+                        $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
+                    }
+                }
+            }
+        }
+        // 3. Si un cours spécifique est sélectionné (course_id)
+        elseif (!empty($data['course_id'])) {
             $course = \App\Models\Course::with('teacherClass')->find($data['course_id']);
             if ($course) {
                 if (!$matiere) {
@@ -281,9 +320,8 @@ class AiService
                 }
             }
         }
-
-        // 2. Si une classe spécifique est sélectionnée (class_id)
-        if (!empty($data['class_id'])) {
+        // 4. Si une classe spécifique est sélectionnée (class_id)
+        elseif (!empty($data['class_id'])) {
             $activeClass = \App\Models\TeacherClass::with('courses')->find($data['class_id']);
             if ($activeClass) {
                 if (!$niveau) {
@@ -294,9 +332,8 @@ class AiService
                 }
             }
         }
-
-        // 3. Repli automatique UNIQUEMENT si l'enseignant n'a qu'UNE SEULE classe et un SEUL cours
-        if (empty($data['class_id']) && empty($data['course_id'])) {
+        // 5. Repli automatique UNIQUEMENT si l'enseignant n'a qu'UNE SEULE classe et un SEUL cours
+        else {
             if (!$niveau) {
                 $classes = $teacher->classes()->get();
                 if ($classes->count() === 1) {
@@ -312,6 +349,8 @@ class AiService
             }
         }
 
+        $cycleInfo = $this->detectCycle($niveau);
+
         $lines = [
             "Contexte du cours :",
             "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
@@ -323,8 +362,15 @@ class AiService
             $lines[] = "⚠️ EXIGENCE DE CLASSE : Le contenu généré doit être STRICTEMENT adapté aux compétences et au programme de la classe : {$niveau}.";
         }
         if (!empty($matiere)) {
-            $lines[] = "- Matière              : {$matiere}";
+            $lines[] = "- Matière / Discipline  : {$matiere}";
             $lines[] = "⚠️ EXIGENCE DE MATIÈRE : Le cours doit traiter EXCLUSIVEMENT de la matière : {$matiere}. Ne fais aucun hors-sujet ni mélange avec d'autres disciplines.";
+        }
+        if (!empty($chapterTitle)) {
+            $lines[] = "- Chapitre             : {$chapterTitle}";
+        }
+        if (!empty($lessonTitle)) {
+            $lines[] = "- Leçon ciblée         : {$lessonTitle}";
+            $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DIRECTEMENT dans la leçon '{$lessonTitle}' du chapitre '{$chapterTitle}' pour la classe '{$niveau}'.";
         }
         if (!empty($userTheme)) {
             $lines[] = "- Thème / Sujet        : {$userTheme}";
@@ -339,42 +385,6 @@ class AiService
             $lines[] = "- Consignes            : {$userConsignes}";
         }
 
-        if (!empty($data['lesson_id'])) {
-            $lesson = \App\Models\Lesson::with('chapter.course.teacherClass')->find($data['lesson_id']);
-            if ($lesson) {
-                $lines[] = "- Leçon ciblée         : {$lesson->title}";
-                if ($lesson->chapter) {
-                    $lines[] = "- Chapitre d'attachement: {$lesson->chapter->title}";
-                    if ($lesson->chapter->course) {
-                        $courseObj = $lesson->chapter->course;
-                        $matiere = $courseObj->name;
-                        $lines[] = "- Discipline / Cours   : {$courseObj->name}";
-                        if ($courseObj->teacherClass) {
-                            $classObj = $courseObj->teacherClass;
-                            $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
-                            $lines[] = "- Classe d'attachement : {$classObj->name}";
-                        }
-                    }
-                }
-                $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DIRECTEMENT dans la leçon '{$lesson->title}' de la classe '{$niveau}'.";
-            }
-        } elseif (!empty($data['chapter_id'])) {
-            $chapter = \App\Models\Chapter::with('course.teacherClass')->find($data['chapter_id']);
-            if ($chapter) {
-                $lines[] = "- Chapitre ciblé       : {$chapter->title}";
-                if ($chapter->course) {
-                    $courseObj = $chapter->course;
-                    $matiere = $courseObj->name;
-                    $lines[] = "- Discipline / Cours   : {$courseObj->name}";
-                    if ($courseObj->teacherClass) {
-                        $classObj = $courseObj->teacherClass;
-                        $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
-                        $lines[] = "- Classe d'attachement : {$classObj->name}";
-                    }
-                }
-                $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DANS LE CHAPITRE '{$chapter->title}' de la classe '{$niveau}'.";
-            }
-        }
 
         if ($cycleInfo) {
             $lines[] = "- Cycle scolaire       : {$cycleInfo['cycle']} ({$cycleInfo['sous_cycle']})";
