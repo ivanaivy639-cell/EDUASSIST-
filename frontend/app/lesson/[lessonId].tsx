@@ -209,13 +209,13 @@ export default function LessonEditorScreen() {
           <Ionicons name="arrow-back" size={24} color={WHITE} />
         </TouchableOpacity>
         
-        <View style={styles.toolbarGroup}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarScrollContent}>
           <View style={styles.toggleContainer}>
             <TouchableOpacity 
               style={[styles.toggleBtn, activeTab === 'edit' && styles.toggleBtnActive]} 
               onPress={() => setActiveTab('edit')}
             >
-              <Ionicons name="create-outline" size={16} color={activeTab === 'edit' ? BLACK : MUTED} />
+              <Ionicons name="create-outline" size={15} color={activeTab === 'edit' ? BLACK : MUTED} />
               <Text style={[styles.toggleBtnText, activeTab === 'edit' && styles.toggleBtnTextActive]}>Éditer</Text>
             </TouchableOpacity>
             
@@ -223,47 +223,50 @@ export default function LessonEditorScreen() {
               style={[styles.toggleBtn, activeTab === 'ai' && { backgroundColor: 'rgba(212, 175, 55, 0.2)' }]} 
               onPress={() => setActiveTab('ai')}
             >
-              <Ionicons name="sparkles" size={16} color={activeTab === 'ai' ? '#D4AF37' : MUTED} />
-              <Text style={[styles.toggleBtnText, activeTab === 'ai' && { color: '#D4AF37', fontWeight: 'bold' }]}>Assistant IA</Text>
+              <Ionicons name="sparkles" size={15} color={GOLD} />
+              <Text style={[styles.toggleBtnText, activeTab === 'ai' && { color: GOLD, fontWeight: 'bold' }]}>Assistant IA</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={[styles.toggleBtn, activeTab === 'preview' && styles.toggleBtnActive]} 
               onPress={() => setActiveTab('preview')}
             >
-              <Ionicons name="eye-outline" size={16} color={activeTab === 'preview' ? BLACK : MUTED} />
-              <Text style={[styles.toggleBtnText, activeTab === 'preview' && styles.toggleBtnTextActive]}>Aperçu Final</Text>
+              <Ionicons name="eye-outline" size={15} color={activeTab === 'preview' ? BLACK : MUTED} />
+              <Text style={[styles.toggleBtnText, activeTab === 'preview' && styles.toggleBtnTextActive]}>Aperçu</Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        <View style={styles.toolbarGroup}>
+          <TouchableOpacity 
+            style={[styles.exportBtn, { borderColor: '#4299E1', backgroundColor: 'rgba(66, 153, 225, 0.2)', paddingHorizontal: 14 }]} 
+            onPress={handleCreateExam}
+          >
+            <Ionicons name="school-outline" size={16} color="#4299E1" />
+            <Text style={[styles.exportBtnText, { color: '#4299E1', fontWeight: 'bold' }]}>🎓 Créer Examen</Text>
+          </TouchableOpacity>
+
           <View style={[styles.toggleContainer, { borderColor: isStudentMode ? '#28a745' : '#17a2b8' }]}>
             <TouchableOpacity 
               style={[styles.toggleBtn, isStudentMode && { backgroundColor: '#28a745' }]} 
               onPress={() => setIsStudentMode(true)}
             >
-              <Ionicons name="people-outline" size={16} color={isStudentMode ? WHITE : MUTED} />
+              <Ionicons name="people-outline" size={15} color={isStudentMode ? WHITE : MUTED} />
               <Text style={[styles.toggleBtnText, isStudentMode && { color: WHITE }]}>Élèves</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.toggleBtn, !isStudentMode && { backgroundColor: '#17a2b8' }]} 
               onPress={() => setIsStudentMode(false)}
             >
-              <Ionicons name="school-outline" size={16} color={!isStudentMode ? WHITE : MUTED} />
+              <Ionicons name="school-outline" size={15} color={!isStudentMode ? WHITE : MUTED} />
               <Text style={[styles.toggleBtnText, !isStudentMode && { color: WHITE }]}>Prof</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.toolbarActions}>
 
           <TouchableOpacity 
             style={[styles.exportBtn, exportingAs === 'pdf' && styles.exporting]} 
             onPress={() => handleExport('pdf')}
             disabled={exportingAs !== null}
           >
-            {exportingAs === 'pdf' ? <ActivityIndicator size="small" color={GOLD} /> : <Ionicons name="document-text-outline" size={18} color={MUTED} />}
+            {exportingAs === 'pdf' ? <ActivityIndicator size="small" color={GOLD} /> : <Ionicons name="document-text-outline" size={16} color={MUTED} />}
             <Text style={styles.exportBtnText}>PDF</Text>
           </TouchableOpacity>
 
@@ -272,16 +275,8 @@ export default function LessonEditorScreen() {
             onPress={() => handleExport('word')}
             disabled={exportingAs !== null}
           >
-            {exportingAs === 'word' ? <ActivityIndicator size="small" color={GOLD} /> : <Ionicons name="document-outline" size={18} color={MUTED} />}
+            {exportingAs === 'word' ? <ActivityIndicator size="small" color={GOLD} /> : <Ionicons name="document-outline" size={16} color={MUTED} />}
             <Text style={styles.exportBtnText}>Word</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.exportBtn, { borderColor: '#4299E1', backgroundColor: 'rgba(66, 153, 225, 0.15)' }]} 
-            onPress={handleCreateExam}
-          >
-            <Ionicons name="school-outline" size={18} color="#4299E1" />
-            <Text style={[styles.exportBtnText, { color: '#4299E1', fontWeight: 'bold' }]}>Créer Examen</Text>
           </TouchableOpacity>
 
           {canSave && (
@@ -289,12 +284,12 @@ export default function LessonEditorScreen() {
               <ActivityIndicator color={GOLD} style={{ marginLeft: spacing.md }} />
             ) : (
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Ionicons name="save-outline" size={18} color={BLACK} />
+                <Ionicons name="save-outline" size={16} color={BLACK} />
                 <Text style={styles.saveBtnText}>Enregistrer</Text>
               </TouchableOpacity>
             )
           )}
-        </View>
+        </ScrollView>
       </View>
 
       {activeTab === 'edit' ? (
@@ -435,15 +430,18 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     backgroundColor: BLACK,
     borderBottomWidth: 1,
     borderBottomColor: FIELD_BORDER,
+  },
+  toolbarScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingRight: spacing.md,
   },
   toolbarBtn: {
     padding: 8,
