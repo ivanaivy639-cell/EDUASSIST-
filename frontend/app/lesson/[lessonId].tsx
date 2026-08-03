@@ -276,16 +276,13 @@ export default function LessonEditorScreen() {
             <Text style={styles.exportBtnText}>Word</Text>
           </TouchableOpacity>
 
-          {/* Seuls les exercices et quiz (contenant un corrigé ou un mot clé) permettent de créer un examen */}
-          {(content.includes('[SECTION_CORRIGE]') || title.toLowerCase().includes('exercice') || title.toLowerCase().includes('quiz') || title.toLowerCase().includes('évaluation')) && (
-            <TouchableOpacity 
-              style={[styles.exportBtn, { borderColor: '#4299E1', backgroundColor: 'rgba(66, 153, 225, 0.1)' }]} 
-              onPress={handleCreateExam}
-            >
-              <Ionicons name="school-outline" size={18} color="#4299E1" />
-              <Text style={[styles.exportBtnText, { color: '#4299E1' }]}>Créer Examen</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={[styles.exportBtn, { borderColor: '#4299E1', backgroundColor: 'rgba(66, 153, 225, 0.15)' }]} 
+            onPress={handleCreateExam}
+          >
+            <Ionicons name="school-outline" size={18} color="#4299E1" />
+            <Text style={[styles.exportBtnText, { color: '#4299E1', fontWeight: 'bold' }]}>Créer Examen</Text>
+          </TouchableOpacity>
 
           {canSave && (
             saving ? (

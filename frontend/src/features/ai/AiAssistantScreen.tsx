@@ -544,6 +544,24 @@ export const AiAssistantScreen = React.memo(({
                 <Text style={styles.actionText}>Word</Text>
               </TouchableOpacity>
 
+              <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: 'rgba(66, 153, 225, 0.15)', borderColor: '#4299E1' }]} 
+                onPress={() => {
+                  import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+                    AsyncStorage.setItem('pending_exam_content', JSON.stringify({
+                      title: `Épreuve — ${activeClassId || 'Évaluation'}`,
+                      classe: activeClassId || '',
+                      content: msg.text,
+                    })).then(() => {
+                      router.navigate('/exam/create' as any);
+                    });
+                  });
+                }}
+              >
+                <Ionicons name="school-outline" size={14} color="#4299E1" />
+                <Text style={[styles.actionText, { color: '#4299E1', fontWeight: 'bold' }]}>Examen</Text>
+              </TouchableOpacity>
+
               {(chapterId || lessonId || course_id) && (
                 <TouchableOpacity 
                   style={[styles.actionBtn, { backgroundColor: 'rgba(212,175,55,0.15)', borderColor: GOLD }]} 
