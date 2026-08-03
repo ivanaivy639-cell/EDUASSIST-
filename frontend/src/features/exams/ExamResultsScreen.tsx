@@ -283,6 +283,11 @@ export const ExamResultsScreen = React.memo(() => {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {exam?.title || 'Résultats'}
           </Text>
+          {exam?.classe ? (
+            <View style={{ backgroundColor: 'rgba(212,175,55,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start', marginTop: 2, marginBottom: 2 }}>
+              <Text style={{ color: GOLD, fontSize: 11, fontWeight: '700' }}>🏫 {exam.classe}</Text>
+            </View>
+          ) : null}
           <Text style={styles.headerSubtitle}>
             {submissions.length} copie{submissions.length !== 1 ? 's' : ''} • /{exam?.max_score || 20}
           </Text>
