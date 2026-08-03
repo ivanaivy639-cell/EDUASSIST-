@@ -244,18 +244,11 @@ class AiService
             '2. OBJECTIFS (Général et Spécifiques)',
             '3. PRÉREQUIS',
             '4. INTRODUCTION (Mise en situation, Problématique)',
-            '5. DÉVELOPPEMENT DU COURS (Le cœur de la leçon, avec des sous-parties numérotées, des définitions claires, des exemples locaux, et des schémas/images pollinaitons)',
-            '6. CONCLUSION (Résumé des points clés)',
-            '7. EXERCICES D\'APPLICATION (Avec leurs corrigés complets)',
-            '8. ACTIVITÉS DE RECHERCHE / DEVOIRS',
-        ]);
-    }
-
-    /**
-     * Enrichit le premier message avec le profil complet de l'enseignant
-     * et le contexte éducatif camerounais pour que l'IA le prenne en compte.
+            '5. DÉVELOPPEMENT DU    /**
+     * Résout la hiérarchie exacte (Enseignant -> Classe -> Cours -> Chapitre -> Leçon)
+     * quel que soit le point d'entrée ou la méthode de génération.
      */
-    private function enrichInitialMessage(Teacher $teacher, array $data): string
+    private function resolveContextHierarchy(Teacher $teacher, array $data): array
     {
         $userMatiere   = !empty($data['matiere']) ? trim($data['matiere']) : null;
         $userNiveau    = !empty($data['niveau']) ? trim($data['niveau']) : null;
@@ -327,64 +320,76 @@ class AiService
                 if (!$niveau) {
                     $niveau = $activeClass->level ? $activeClass->level . " (Classe: " . $activeClass->name . ")" : $activeClass->name;
                 }
-                if (!$matiere && $activeClass->courses->count() === 1) {
+                if (!$matiere && $activeClass->courses->count() > 0) {
                     $matiere = $activeClass->courses->first()->name;
                 }
             }
         }
-        // 5. Repli automatique UNIQUEMENT si l'enseignant n'a qu'UNE SEULE classe et un SEUL cours
+        // 5. Repli automatique universel : extraire la classe et le cours les plus récents de l'enseignant
         else {
-            if (!$niveau) {
-                $classes = $teacher->classes()->get();
-                if ($classes->count() === 1) {
-                    $singleClass = $classes->first();
-                    $niveau = $singleClass->level ? $singleClass->level . " (Classe: " . $singleClass->name . ")" : $singleClass->name;
-                    if (!$matiere) {
-                        $courses = $singleClass->courses()->get();
-                        if ($courses->count() === 1) {
-                            $matiere = $courses->first()->name;
-                        }
-                    }
+            $latestClass = $teacher->classes()->with('courses')->latest()->first();
+            if ($latestClass) {
+                if (!$niveau) {
+                    $niveau = $latestClass->level ? $latestClass->level . " (Classe: " . $latestClass->name . ")" : $latestClass->name;
+                }
+                if (!$matiere && $latestClass->courses->count() > 0) {
+                    $latestCourse = $latestClass->courses->first();
+                    $matiere = $latestCourse->name;
                 }
             }
         }
 
-        $cycleInfo = $this->detectCycle($niveau);
+        return [
+            'matiere'       => $matiere ?: 'Enseignement Général',
+            'niveau'        => $niveau ?: 'Toutes Classes',
+            'userTheme'     => $userTheme ?: ($lessonTitle ?: ($chapterTitle ?: 'Leçon Pédagogique')),
+            'chapterTitle'  => $chapterTitle,
+            'lessonTitle'   => $lessonTitle,
+            'userDuree'     => $userDuree ?: '2 Heures',
+            'userObjectifs'  => $userObjectifs,
+            'userConsignes'  => $userConsignes,
+            'ecole'         => $ecole,
+        ];
+    }
+
+    /**
+     * Enrichit le premier message avec le profil complet de l'enseignant
+     * et le contexte éducatif camerounais pour que l'IA le prenne en compte.
+     */
+    private function enrichInitialMessage(Teacher $teacher, array $data): string
+    {
+        $ctx = $this->resolveContextHierarchy($teacher, $data);
+        $cycleInfo = $this->detectCycle($ctx['niveau']);
 
         $lines = [
             "Contexte du cours :",
             "- Nom de l'Enseignant : {$teacher->nom} {$teacher->prenom}",
-            "- École                : {$ecole}",
+            "- École                : {$ctx['ecole']}",
+            "- Classe / Niveau      : {$ctx['niveau']}",
+            "⚠️ EXIGENCE DE CLASSE : Le contenu généré doit être STRICTEMENT adapté aux compétences et au programme officiel de la classe : {$ctx['niveau']}.",
+            "- Matière / Discipline  : {$ctx['matiere']}",
+            "⚠️ EXIGENCE DE MATIÈRE : Le cours doit traiter EXCLUSIVEMENT de la matière : {$ctx['matiere']}. Ne fais aucun hors-sujet ni mélange avec d'autres disciplines.",
         ];
 
-        if (!empty($niveau)) {
-            $lines[] = "- Classe / Niveau      : {$niveau}";
-            $lines[] = "⚠️ EXIGENCE DE CLASSE : Le contenu généré doit être STRICTEMENT adapté aux compétences et au programme de la classe : {$niveau}.";
+        if (!empty($ctx['chapterTitle'])) {
+            $lines[] = "- Chapitre             : {$ctx['chapterTitle']}";
         }
-        if (!empty($matiere)) {
-            $lines[] = "- Matière / Discipline  : {$matiere}";
-            $lines[] = "⚠️ EXIGENCE DE MATIÈRE : Le cours doit traiter EXCLUSIVEMENT de la matière : {$matiere}. Ne fais aucun hors-sujet ni mélange avec d'autres disciplines.";
+        if (!empty($ctx['lessonTitle'])) {
+            $lines[] = "- Leçon ciblée         : {$ctx['lessonTitle']}";
+            $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DIRECTEMENT dans la leçon '{$ctx['lessonTitle']}' du chapitre '{$ctx['chapterTitle']}' pour la classe '{$ctx['niveau']}'.";
         }
-        if (!empty($chapterTitle)) {
-            $lines[] = "- Chapitre             : {$chapterTitle}";
+        if (!empty($ctx['userTheme'])) {
+            $lines[] = "- Thème / Sujet        : {$ctx['userTheme']}";
         }
-        if (!empty($lessonTitle)) {
-            $lines[] = "- Leçon ciblée         : {$lessonTitle}";
-            $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DIRECTEMENT dans la leçon '{$lessonTitle}' du chapitre '{$chapterTitle}' pour la classe '{$niveau}'.";
+        if ($ctx['userDuree']) {
+            $lines[] = "- Durée                : {$ctx['userDuree']}";
         }
-        if (!empty($userTheme)) {
-            $lines[] = "- Thème / Sujet        : {$userTheme}";
+        if ($ctx['userObjectifs']) {
+            $lines[] = "- Objectifs            : {$ctx['userObjectifs']}";
         }
-        if ($userDuree) {
-            $lines[] = "- Durée                : {$userDuree}";
+        if ($ctx['userConsignes']) {
+            $lines[] = "- Consignes            : {$ctx['userConsignes']}";
         }
-        if ($userObjectifs) {
-            $lines[] = "- Objectifs            : {$userObjectifs}";
-        }
-        if ($userConsignes) {
-            $lines[] = "- Consignes            : {$userConsignes}";
-        }
-
 
         if ($cycleInfo) {
             $lines[] = "- Cycle scolaire       : {$cycleInfo['cycle']} ({$cycleInfo['sous_cycle']})";
@@ -398,6 +403,21 @@ class AiService
             $type = 'lesson_plan';
         } elseif (!$type) {
             $type = 'chat';
+        }
+
+        $typeInstruction = $this->formatInstructions($type, (string) $ctx['niveau']);
+
+        $lines = array_merge($lines, [
+            "",
+            "=== DIRECTIVES DE FORMATAGE SPÉCIFIQUES ===",
+            $typeInstruction,
+            "",
+            "=== MA DEMANDE ACTUELLE ===",
+            $data['message'] ?? ''
+        ]);
+
+        return implode("\n", $lines);
+    }         $type = 'chat';
         }
 
         $typeInstruction = $this->formatInstructions($type, (string) $niveau);
@@ -500,11 +520,13 @@ class AiService
      */
     private function buildLocalResponse(Teacher $teacher, array $data, bool $remoteFailed = false): array
     {
-        $userTheme     = !empty($data['theme']) ? trim($data['theme']) : (!empty($data['message']) ? trim($data['message']) : 'Notions Pédagogiques');
-        $userMatiere   = !empty($data['matiere']) ? trim($data['matiere']) : 'Discipline Pédagogique';
-        $userNiveau    = !empty($data['niveau']) ? trim($data['niveau']) : 'Classe / Niveau';
-        $userDuree     = !empty($data['duree']) ? trim($data['duree']) : '2 Heures';
-        $userObjectifs = !empty($data['objectifs']) ? trim($data['objectifs']) : 'Comprendre et maîtriser la notion.';
+        $ctx = $this->resolveContextHierarchy($teacher, $data);
+
+        $userTheme     = $ctx['userTheme'];
+        $userMatiere   = $ctx['matiere'];
+        $userNiveau    = $ctx['niveau'];
+        $userDuree     = $ctx['userDuree'];
+        $userObjectifs = $ctx['userObjectifs'] ?: 'Comprendre et maîtriser la notion.';
 
         $title = "LEÇON : " . mb_strtoupper($userTheme);
 
