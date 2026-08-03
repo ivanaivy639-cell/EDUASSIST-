@@ -529,6 +529,35 @@ export const AiAssistantScreen = React.memo(({
                 )}
                 <Text style={styles.actionText}>Word</Text>
               </TouchableOpacity>
+
+              {(chapterId || lessonId || course_id) && (
+                <TouchableOpacity 
+                  style={[styles.actionBtn, { backgroundColor: 'rgba(212,175,55,0.15)', borderColor: GOLD }]} 
+                  onPress={() => {
+                    if (onInsertContent) {
+                      onInsertContent(msg.text);
+                      Alert.alert('Succès', 'Contenu directement inséré et lié à votre cours !');
+                    } else {
+                      import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+                        AsyncStorage.setItem('temp_ai_content', msg.text).then(() => {
+                          Alert.alert('Succès', 'Leçon liée et sauvegardée dans votre cours !');
+                          router.navigate({
+                            pathname: '/lesson/ai' as any,
+                            params: {
+                              courseId: course_id || '',
+                              targetChapterId: chapterId || '',
+                              targetLessonId: lessonId || ''
+                            }
+                          });
+                        });
+                      });
+                    }
+                  }}
+                >
+                  <Ionicons name="save-outline" size={14} color={GOLD} />
+                  <Text style={[styles.actionText, { color: GOLD, fontWeight: '700' }]}>Lier au cours</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>

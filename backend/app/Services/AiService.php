@@ -339,17 +339,40 @@ class AiService
             $lines[] = "- Consignes            : {$userConsignes}";
         }
 
-        if (!empty($data['chapter_id'])) {
-            $chapter = \App\Models\Chapter::find($data['chapter_id']);
-            if ($chapter) {
-                $lines[] = "- Chapitre             : {$chapter->title}";
-            }
-        }
-
         if (!empty($data['lesson_id'])) {
-            $lesson = \App\Models\Lesson::find($data['lesson_id']);
+            $lesson = \App\Models\Lesson::with('chapter.course.teacherClass')->find($data['lesson_id']);
             if ($lesson) {
-                $lines[] = "- Leçon actuelle       : {$lesson->title}";
+                $lines[] = "- Leçon ciblée         : {$lesson->title}";
+                if ($lesson->chapter) {
+                    $lines[] = "- Chapitre d'attachement: {$lesson->chapter->title}";
+                    if ($lesson->chapter->course) {
+                        $courseObj = $lesson->chapter->course;
+                        $matiere = $courseObj->name;
+                        $lines[] = "- Discipline / Cours   : {$courseObj->name}";
+                        if ($courseObj->teacherClass) {
+                            $classObj = $courseObj->teacherClass;
+                            $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
+                            $lines[] = "- Classe d'attachement : {$classObj->name}";
+                        }
+                    }
+                }
+                $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DIRECTEMENT dans la leçon '{$lesson->title}' de la classe '{$niveau}'.";
+            }
+        } elseif (!empty($data['chapter_id'])) {
+            $chapter = \App\Models\Chapter::with('course.teacherClass')->find($data['chapter_id']);
+            if ($chapter) {
+                $lines[] = "- Chapitre ciblé       : {$chapter->title}";
+                if ($chapter->course) {
+                    $courseObj = $chapter->course;
+                    $matiere = $courseObj->name;
+                    $lines[] = "- Discipline / Cours   : {$courseObj->name}";
+                    if ($courseObj->teacherClass) {
+                        $classObj = $courseObj->teacherClass;
+                        $niveau = $classObj->level ? $classObj->level . " (Classe: " . $classObj->name . ")" : $classObj->name;
+                        $lines[] = "- Classe d'attachement : {$classObj->name}";
+                    }
+                }
+                $lines[] = "⚠️ IMPÉRATIF DE LIAISON : Le contenu généré DOIT S'INSCRIRE DANS LE CHAPITRE '{$chapter->title}' de la classe '{$niveau}'.";
             }
         }
 

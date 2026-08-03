@@ -121,15 +121,36 @@ class AiController extends Controller
             $conversation->refresh();
         }
 
-        // Touch updated_at
-        $conversation->touch();
+        // Auto-link/sauvegarder automatiquement dans la leçon ou le chapitre ciblé
+        $linkedLessonId = null;
+        if (!empty($validated['lesson_id'])) {
+            $targetLesson = \App\Models\Lesson::find($validated['lesson_id']);
+            if ($targetLesson) {
+                $targetLesson->update([
+                    'content' => $result['content'],
+                    'status'  => 'published',
+                ]);
+                $linkedLessonId = $targetLesson->id;
+            }
+        } elseif (!empty($validated['chapter_id'])) {
+            $lessonTitle = !empty($validated['theme']) ? trim($validated['theme']) : $computedTitle;
+            $newLesson = \App\Models\Lesson::create([
+                'chapter_id' => $validated['chapter_id'],
+                'title'      => $lessonTitle,
+                'content'    => $result['content'],
+                'order'      => (\App\Models\Lesson::where('chapter_id', $validated['chapter_id'])->max('order') ?? 0) + 1,
+                'status'     => 'published',
+            ]);
+            $linkedLessonId = $newLesson->id;
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Ressource generee avec succes.',
+            'message' => 'Ressource générée et liée au cours avec succès.',
             'data' => array_merge($result, [
-                'conversation_id' => $conversation->id,
+                'conversation_id'    => $conversation->id,
                 'conversation_title' => $conversation->title,
+                'lesson_id'          => $linkedLessonId,
             ]),
         ]);
     }
