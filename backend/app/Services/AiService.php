@@ -52,13 +52,13 @@ class AiService
 
         [$agentId, $primaryModel] = $this->resolveAgent($teacher->user, $data['agent'] ?? null);
 
-        // Liste des modèles de secours en cas d'atteinte du quota (HTTP 429)
+        // Liste des modèles actifs vérifiés en cas de besoin de bascule ou limite de quota
         $modelsToTry = array_unique([
             $primaryModel,
             'llama-3.3-70b-versatile',
-            'mixtral-8x7b-32768',
-            'gemma2-9b-it',
             'llama-3.1-8b-instant',
+            'qwen/qwen3.6-27b',
+            'groq/compound',
         ]);
 
         $endpoint = config('ai.groq.endpoint');
